@@ -1,7 +1,6 @@
 # DukeStation 
-
-
-DukeStation is a PlayStation 1 emulator and game library for Android, built around the [goosestation core] https://codeberg.org/hueponik/goosestation-builder
+A standalone PlayStation emulator for Android, powered by GooseStation 0.6.9, with a redesigned interface and extensive customization.
+https://codeberg.org/hueponik/goosestation-builder
 
 
 ## Highlights
