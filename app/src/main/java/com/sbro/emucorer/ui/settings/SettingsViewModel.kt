@@ -49,7 +49,7 @@ import com.sbro.emucorer.data.GameMenuTabId
 import com.sbro.emucorer.data.GameMenuSectionId
 import com.sbro.emucorer.data.DefaultGameMenuTabOrder
 import com.sbro.emucorer.data.DefaultGameMenuSectionOrder
-import com.sbro.emucorer.data.AppPreferences.Companion.FPS_OVERLAY_MODE_DETAILED
+import com.sbro.emucorer.data.AppPreferences.Companion.FPS_OVERLAY_MODE_SIMPLE
 import com.sbro.emucorer.data.CoverArtRepository
 import com.sbro.emucorer.data.CoverCacheClearResult
 import com.sbro.emucorer.data.CustomFontRepository
@@ -75,7 +75,6 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val isLoaded: Boolean = false,
-    val showMediatekCompatibilityNotice: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val customTheme: CustomThemeConfig = CustomThemeConfig.Default,
     val customThemeLibrary: CustomThemeLibrary = CustomThemeLibrary.Empty,
@@ -140,7 +139,7 @@ data class SettingsUiState(
     val padVibrationStrength: Int = AppPreferences.DEFAULT_PAD_VIBRATION_STRENGTH,
     val padVibrationFallback: Boolean = true,
     val showFps: Boolean = true,
-    val fpsOverlayMode: Int = FPS_OVERLAY_MODE_DETAILED,
+    val fpsOverlayMode: Int = FPS_OVERLAY_MODE_SIMPLE,
     val fpsOverlayCorner: Int = AppPreferences.FPS_OVERLAY_CORNER_TOP_RIGHT,
     val fpsOverlayScale: Int = AppPreferences.DEFAULT_FPS_OVERLAY_SCALE,
     val fpsOverlayMetrics: Int = PerformanceOverlayMetrics.DEFAULT,
@@ -340,7 +339,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPreferences.ORIENTATION_LOCK_AUTO)
     val emulationAllowsBothOrientations: StateFlow<Boolean> = preferences.emulationAllowsBothOrientations
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-    private var mediatekCompatibilityNoticeChecked = false
 
     init {
         initializeAboutInfo()
@@ -595,25 +593,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             dualshockToggleCombo = snapshot.dualshockToggleCombo,
             cdReadAhead = snapshot.cdReadAhead
         )
-    }
-
-    fun checkMediatekCompatibilityNotice() {
-        if (mediatekCompatibilityNoticeChecked) return
-        mediatekCompatibilityNoticeChecked = true
-        if (!GpuHardwareProfiles.isMediaTekHardware()) return
-
-        viewModelScope.launch {
-            if (!preferences.mediatekSettingsNoticeShown.first()) {
-                _uiState.value = _uiState.value.copy(showMediatekCompatibilityNotice = true)
-            }
-        }
-    }
-
-    fun dismissMediatekCompatibilityNotice() {
-        _uiState.value = _uiState.value.copy(showMediatekCompatibilityNotice = false)
-        viewModelScope.launch {
-            preferences.markMediatekSettingsNoticeShown()
-        }
     }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
@@ -2424,6 +2403,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             preferences.removeGamePath(path)
             StorageAccess.releasePersistedPermission(getApplication(), path)
+        }
+    }
+
+    fun setCustomEmulatorDataPath(path: String) {
+        val application = getApplication<Application>()
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!EmulatorStorage.prepareCustomDataRoot(path)) {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(application,
+                        com.sbro.emucorer.R.string.emulator_data_location_error,
+                        android.widget.Toast.LENGTH_LONG).show()
+                }
+                return@launch
+            }
+            preferences.setEmulatorDataPath(path)
+            NativeApp.reloadDataRoot(path)
         }
     }
 

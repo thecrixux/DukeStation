@@ -635,28 +635,32 @@ private fun SideNavigation(
                 ),
             verticalArrangement = Arrangement.spacedBy(drawerSectionSpacing)
         ) {
-            Row(
-                modifier = Modifier.padding(top = topInset + 4.dp, start = 6.dp, end = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_drawer_app),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                )
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 14.dp)
-                )
-            }
+            val pocketContext = LocalContext.current
+            val wordmarkColor = MaterialTheme.colorScheme.onSurface
+            Text(
+                text = androidx.compose.ui.text.buildAnnotatedString {
+                    append("DukeStation")
+                    addStyle(androidx.compose.ui.text.SpanStyle(
+                        color = wordmarkColor,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), 0, 4)
+                    addStyle(androidx.compose.ui.text.SpanStyle(
+                        color = androidx.compose.ui.graphics.Color(0xFFFFB800)), 4, 11)
+                },
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                maxLines = 1,
+                modifier = Modifier.padding(top = topInset + 4.dp, start = 6.dp, end = 6.dp)
+            )
+            ShellAction(
+                icon = Icons.Rounded.SportsEsports,
+                label = "DukePocket · PocketStation",
+                onClick = {
+                    closeDrawerThen {
+                        pocketContext.startActivity(android.content.Intent(
+                            pocketContext, com.sbro.emucorer.pocket.PocketActivity::class.java))
+                    }
+                }
+            )
             Text(
                 text = stringResource(R.string.shell_quick_actions),
                 style = MaterialTheme.typography.labelLarge,
@@ -683,17 +687,7 @@ private fun SideNavigation(
                     onClick = navigateSearch
                 )
             }
-            if (DrawerItemId.HUB !in hiddenDrawerItems) {
-                ShellItem(
-                    icon = Icons.Rounded.Newspaper,
-                    label = stringResource(R.string.hub_title),
-                    selected = selected == PrimaryDestination.Hub,
-                    modifier = if (selected == PrimaryDestination.Hub && selectedItemFocusRequester != null) {
-                        Modifier.focusRequester(selectedItemFocusRequester)
-                    } else Modifier,
-                    onClick = navigateHub
-                )
-            }
+
             if (navigateAchievements != null && DrawerItemId.ACHIEVEMENTS !in hiddenDrawerItems) {
                 ShellItem(
                     icon = Icons.Rounded.EmojiEvents,
@@ -702,17 +696,7 @@ private fun SideNavigation(
                     onClick = navigateAchievements
                 )
             }
-            if (navigateDiscord != null && DrawerItemId.DISCORD !in hiddenDrawerItems) {
-                ShellItem(
-                    icon = Icons.Rounded.Forum,
-                    label = stringResource(R.string.discord_title),
-                    selected = selected == PrimaryDestination.Discord,
-                    modifier = if (selected == PrimaryDestination.Discord && selectedItemFocusRequester != null) {
-                        Modifier.focusRequester(selectedItemFocusRequester)
-                    } else Modifier,
-                    onClick = navigateDiscord
-                )
-            }
+
 
             if (showExecutables) {
             HorizontalDivider(
@@ -850,17 +834,7 @@ private fun SideNavigation(
                     onClick = navigateFormats
                 )
             }
-            if (navigateFeedback != null && DrawerItemId.FEEDBACK !in hiddenDrawerItems) {
-                ShellItem(
-                    icon = Icons.Rounded.RateReview,
-                    label = stringResource(R.string.feedback_title),
-                    selected = selected == PrimaryDestination.Feedback,
-                    modifier = if (selected == PrimaryDestination.Feedback && selectedItemFocusRequester != null) {
-                        Modifier.focusRequester(selectedItemFocusRequester)
-                    } else Modifier,
-                    onClick = navigateFeedback
-                )
-            }
+
         }
 
         if (showResetDialog && onResetAllSettings != null) {

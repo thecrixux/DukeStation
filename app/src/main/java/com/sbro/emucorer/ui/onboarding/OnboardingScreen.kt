@@ -180,6 +180,14 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    if (uiState.currentPage < 3) {
+        DukeIntroScreen(
+            page = uiState.currentPage,
+            onNext = { viewModel.setCurrentPage(uiState.currentPage + 1) },
+            onBack = { viewModel.setCurrentPage(uiState.currentPage - 1) }
+        )
+        return
+    }
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val tvUiEnabled = LocalTvUiEnvironment.current.enabled
@@ -211,7 +219,7 @@ fun OnboardingScreen(
         }
     }
 
-    val pagerState = rememberPagerState(pageCount = { uiState.totalPages })
+    val pagerState = rememberPagerState(initialPage = uiState.currentPage, pageCount = { uiState.totalPages })
     val pageContentFocusRequesters = remember(uiState.totalPages) {
         List(uiState.totalPages) { FocusRequester() }
     }
@@ -275,6 +283,10 @@ fun OnboardingScreen(
             onSelect = { location ->
                 showEmulatorDataLocationDialog = false
                 viewModel.setEmulatorDataLocation(location)
+            },
+            onCustomPath = { path ->
+                showEmulatorDataLocationDialog = false
+                viewModel.setCustomEmulatorDataPath(path)
             },
             onDismiss = { showEmulatorDataLocationDialog = false }
         )

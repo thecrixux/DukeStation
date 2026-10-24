@@ -37,6 +37,14 @@ val discordSdkDirectory = (
             sdkDir.resolve("discord_partner_sdk.aar").isFile
     }
 
+// Supplied only by the local release script; no signing secrets in the repository.
+val dukeStoreFile = providers.environmentVariable("DUKE_STORE_FILE").orNull
+val dukeStorePassword = providers.environmentVariable("DUKE_STORE_PASSWORD").orNull
+val dukeKeyAlias = providers.environmentVariable("DUKE_KEY_ALIAS").orNull
+val dukeKeyPassword = providers.environmentVariable("DUKE_KEY_PASSWORD").orNull
+val dukeSigningReady = listOf(dukeStoreFile, dukeStorePassword, dukeKeyAlias, dukeKeyPassword)
+    .all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.sbro.emucorer"
     compileSdk {
@@ -45,11 +53,11 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "com.sbro.emucorer"
+        applicationId = "com.crixux.dukestation"
         minSdk = 26
         targetSdk = 37
-        versionCode = 17
-        versionName = "0.0.5"
+        versionCode = 11
+        versionName = "1.1.0-preview7"
 
         buildConfigField("String", "FEEDBACK_ENDPOINT", buildConfigString(feedbackEndpoint))
         buildConfigField("String", "FEEDBACK_API_KEY", buildConfigString(feedbackApiKey))
@@ -73,6 +81,16 @@ android {
         }
     }
 
+    signingConfigs {
+        create("dukeRelease") {
+            if (dukeSigningReady) {
+                storeFile = file(dukeStoreFile!!)
+                storePassword = dukeStorePassword
+                keyAlias = dukeKeyAlias
+                keyPassword = dukeKeyPassword
+            }
+        }
+    }
     buildTypes {
         debug {
             // The emulator core is performance-sensitive even when the
@@ -87,6 +105,7 @@ android {
             }
         }
         release {
+            signingConfig = signingConfigs.getByName("dukeRelease")
             // AGP configures CMake with CMAKE_BUILD_TYPE=RelWithDebInfo, whose
             // default flags are "-O2 -g -DNDEBUG" and are appended after any -O3
             // given through cFlags/cppFlags, so that -O2 would win. Replace the
@@ -123,12 +142,12 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.30.5"
+            version = "3.31.6"
         }
     }
     packaging {
         jniLibs {
-            useLegacyPackaging = false
+            useLegacyPackaging = true
             discordSdkDirectory?.let { pickFirsts += "**/libdiscord_partner_sdk.so" }
         }
     }
@@ -144,6 +163,13 @@ android {
 }
 
 dependencies {
+    // Local game OCR and translation. OCR models are bundled; language translation
+    // models are downloaded only after the user presses Download models.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
+    implementation("com.google.mlkit:translate:17.0.3")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -185,4 +211,13 @@ dependencies {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+val verifyDukeReleaseSigning = tasks.register("verifyDukeReleaseSigning") {
+    doLast {
+        check(dukeSigningReady) { "Use Build-DukeRelease.ps1 to provide your local signing key." }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(verifyDukeReleaseSigning)
 }

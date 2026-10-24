@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">Güçlü</string>
+    <string name="duke_library_highlight">Oyun</string>
+    <string name="duke_choose_folder">Telefonda klasör seç</string>
+    <string name="duke_choose_folder_description">Veriler için yerel bir klasör seçin. Android dosya erişimi isteyebilir. Mevcut dosyalar otomatik taşınmaz.</string>
+    <string name="duke_storage_description">Veriler için yerel bir klasör seçin. Android dosya erişimi isteyebilir. Mevcut dosyalar otomatik taşınmaz.</string>
+</resources>

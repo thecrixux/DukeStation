@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">potente</string>
+    <string name="duke_library_highlight">giochi</string>
+    <string name="duke_choose_folder">Scegli una cartella del telefono</string>
+    <string name="duke_choose_folder_description">Scegli una cartella locale per i dati. Android potrebbe richiedere accesso ai file. I file esistenti non vengono spostati automaticamente.</string>
+    <string name="duke_storage_description">Scegli una cartella locale per i dati. Android potrebbe richiedere accesso ai file. I file esistenti non vengono spostati automaticamente.</string>
+</resources>

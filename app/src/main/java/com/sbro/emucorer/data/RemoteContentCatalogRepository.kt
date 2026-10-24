@@ -67,19 +67,25 @@ class RemoteContentCatalogRepository(context: Context) {
     private val cacheDir = File(appContext.filesDir, "remote-content").apply { mkdirs() }
     private val downloadDir = File(appContext.cacheDir, "remote-content-downloads").apply { mkdirs() }
 
-    fun loadTextureCatalog(forceRefresh: Boolean = false): RemoteCatalogResult<RemoteTexturePack> = loadCatalog(
-        urls = TEXTURE_CATALOG_URLS,
-        cacheFile = File(cacheDir, "textures-v1.json"),
-        parser = ::parseTextureCatalog,
-        forceRefresh = forceRefresh
-    )
+    fun loadTextureCatalog(forceRefresh: Boolean = false): RemoteCatalogResult<RemoteTexturePack> {
+        val source = DukeCatalogSource.get(appContext, "textures")
+        return loadCatalog(
+            urls = listOf(source).filter(String::isNotBlank),
+            cacheFile = File(cacheDir, DukeCatalogSource.cacheName("textures", source)),
+            parser = ::parseTextureCatalog,
+            forceRefresh = forceRefresh
+        )
+    }
 
-    fun loadCheatCatalog(forceRefresh: Boolean = false): RemoteCatalogResult<RemoteCheatPack> = loadCatalog(
-        urls = CHEAT_CATALOG_URLS,
-        cacheFile = File(cacheDir, "cheats-v1.json"),
-        parser = ::parseCheatCatalog,
-        forceRefresh = forceRefresh
-    )
+    fun loadCheatCatalog(forceRefresh: Boolean = false): RemoteCatalogResult<RemoteCheatPack> {
+        val source = DukeCatalogSource.get(appContext, "cheats")
+        return loadCatalog(
+            urls = listOf(source).filter(String::isNotBlank),
+            cacheFile = File(cacheDir, DukeCatalogSource.cacheName("cheats", source)),
+            parser = ::parseCheatCatalog,
+            forceRefresh = forceRefresh
+        )
+    }
 
     fun downloadTexturePack(
         pack: RemoteTexturePack,
@@ -156,7 +162,7 @@ class RemoteContentCatalogRepository(context: Context) {
         parser: (String) -> List<T>,
         forceRefresh: Boolean
     ): RemoteCatalogResult<T> {
-        if (!forceRefresh && cacheFile.isFile) {
+        if (urls.isNotEmpty() && !forceRefresh && cacheFile.isFile) {
             val cacheAge = (System.currentTimeMillis() - cacheFile.lastModified()).coerceAtLeast(0L)
             if (cacheAge <= CATALOG_CACHE_TTL_MS) {
                 runCatching { parser(cacheFile.readText()) }
@@ -168,7 +174,7 @@ class RemoteContentCatalogRepository(context: Context) {
                     }
             }
         }
-        var lastError: Throwable? = null
+        var lastError: Throwable? = if (urls.isEmpty()) IOException("No public catalog configured") else null
         urls.forEach { url ->
             val result = runCatching {
                 val raw = fetchBytes(url, MAX_CATALOG_BYTES).toString(Charsets.UTF_8)
@@ -388,7 +394,7 @@ class RemoteContentCatalogRepository(context: Context) {
         connection.readTimeout = 45_000
         connection.instanceFollowRedirects = true
         connection.setRequestProperty("Accept", "application/json, application/octet-stream, text/plain, */*")
-        connection.setRequestProperty("User-Agent", "EmuCoreR-Android")
+        connection.setRequestProperty("User-Agent", "DukeStation-Android")
         connection.connect()
         if (connection.responseCode !in 200..299) {
             val code = connection.responseCode
@@ -421,16 +427,7 @@ class RemoteContentCatalogRepository(context: Context) {
         val RAW_CHEAT_CODE_REGEX = Regex("[0-9A-Fa-f]{8}[\\s:+-]+[0-9A-Fa-f]{1,8}")
         val LIBRETRO_CHEAT_CODE_REGEX = Regex("^cheat\\d+_code\\s*=", RegexOption.IGNORE_CASE)
 
-        val TEXTURE_CATALOG_URLS = listOf(
-            "https://raw.githubusercontent.com/sashkinbro/EmuCoreR-Textures/main/textures.json",
-            "https://github.com/sashkinbro/EmuCoreR-Textures/raw/main/textures.json",
-            "https://cdn.jsdelivr.net/gh/sashkinbro/EmuCoreR-Textures@main/textures.json"
-        )
-        val CHEAT_CATALOG_URLS = listOf(
-            "https://raw.githubusercontent.com/sashkinbro/EmuCoreR-Cheat/main/cheats.json",
-            "https://github.com/sashkinbro/EmuCoreR-Cheat/raw/main/cheats.json",
-            "https://cdn.jsdelivr.net/gh/sashkinbro/EmuCoreR-Cheat@main/cheats.json"
-        )
+
     }
 }
 

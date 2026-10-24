@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">Kuat</string>
+    <string name="duke_library_highlight">Game</string>
+    <string name="duke_choose_folder">Pilih folder di ponsel</string>
+    <string name="duke_choose_folder_description">Pilih folder lokal untuk data. Android mungkin meminta akses file. File yang ada tidak dipindahkan otomatis.</string>
+    <string name="duke_storage_description">Pilih folder lokal untuk data. Android mungkin meminta akses file. File yang ada tidak dipindahkan otomatis.</string>
+</resources>

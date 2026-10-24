@@ -376,7 +376,7 @@ class TextureDownloadWorker(
                 instanceFollowRedirects = false
                 setRequestProperty("Accept", "application/octet-stream, */*")
                 setRequestProperty("Accept-Encoding", "identity")
-                setRequestProperty("User-Agent", "EmuCoreR-Android")
+                setRequestProperty("User-Agent", "DukeStation-Android")
                 if (offset > 0L) setRequestProperty("Range", "bytes=$offset-")
             }
             try {

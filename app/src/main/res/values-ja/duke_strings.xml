@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">強力</string>
+    <string name="duke_library_highlight">ゲーム</string>
+    <string name="duke_choose_folder">端末のフォルダーを選択</string>
+    <string name="duke_choose_folder_description">データ用のローカルフォルダーを選択します。Androidがファイルへのアクセスを求める場合があります。既存のファイルは自動的に移動されません。</string>
+    <string name="duke_storage_description">データ用のローカルフォルダーを選択します。Androidがファイルへのアクセスを求める場合があります。既存のファイルは自動的に移動されません。</string>
+</resources>

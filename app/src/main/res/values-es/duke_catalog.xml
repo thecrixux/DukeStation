@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_catalog_unavailable">Los catálogos públicos anteriores de EmuCoreR ya no están accesibles. Su nuevo servicio requiere autorización. Puedes importar archivos locales o configurar un catálogo público.</string>
+    <string name="duke_catalog_no_source">No hay un catálogo público configurado.</string>
+    <string name="duke_catalog_source">Fuente del catálogo</string>
+    <string name="duke_catalog_retry">Recargar</string>
+    <string name="duke_catalog_save">Guardar</string>
+    <string name="duke_catalog_cancel">Cancelar</string>
+    <string name="duke_catalog_source_help">Introduce una URL HTTPS pública que apunte directamente a un catálogo JSON compatible (schemaVersion 1). Una página de repositorio o un enlace ZIP no es un catálogo. Déjalo vacío para desactivar el acceso en línea. No se necesitan ni se envían credenciales.</string>
+    <string name="duke_catalog_load_failed">No se pudo cargar este catálogo. Comprueba la URL, los permisos de acceso, el formato JSON y la conexión.</string>
+</resources>

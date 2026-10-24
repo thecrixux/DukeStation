@@ -142,6 +142,14 @@ internal object CoreRuntime {
     fun isRunning(): Boolean = running && failure.value == null && sessionLock.withLock { session != 0L }
     fun hasSession(): Boolean = sessionLock.withLock { session != 0L }
 
+    // Serialize offline card transactions with PS1 start/restart/shutdown.
+    fun withStoppedPs1(action: Runnable): Boolean = lifecycleLock.withLock {
+        if (running || worker?.isAlive == true || hasSession()) return@withLock false
+        action.run()
+        true
+    }
+
+
     fun setPerformanceMetricsEnabled(visible: Boolean, detailed: Boolean) {
         performanceMetricsEnabled = visible
         detailedPerformanceMetrics = visible && detailed
@@ -233,45 +241,59 @@ internal object CoreRuntime {
         // The native audio ring is shared between sessions; clear it so the new
         // AAudio stream does not replay the tail of the previous game.
         bridge.resetAudioQueue()
-        var coreRenderer = candidates.first()
-        var created = false
-        for (candidate in candidates) {
-            if (createSessionLocked(gamePath, biosOnly, stagedBios, candidate)) {
-                coreRenderer = candidate
-                created = true
-                break
-            }
-            if (candidate != candidates.last()) {
-                Log.w(TAG, "${RendererDefaults.coreRendererName(candidate)} renderer unavailable; " +
-                    "falling back to ${RendererDefaults.coreRendererName(candidates.last())}")
-            }
-        }
-        if (!created) return false
-
         currentGamePath = gamePath
         currentBiosOnly = biosOnly
         running = true
         paused = false
         renderedFirstFrame = false
         sessionStartedAtNanos = startupStartedAtNanos
+        val ready = CountDownLatch(1)
+        var created = false // Published to the caller by ready.countDown().
         var started = false
         try {
             val output = NativeAudioOutput()
             audioOutput = output
-            output.play()
-            worker = thread(name = "EmuCoreR-Frame", isDaemon = true, start = true) {
-                // The frame loop shares the CPU with the UI, background work
-                // and the audio output. A display-level priority keeps the
-                // emulated frame deadline stable under that contention while
-                // staying below the audio thread, so mixing never waits on us.
-                android.os.Process.setThreadPriority(
-                    android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
-                runLoop(output)
+            // Init, load, execution and teardown must share the owner thread.
+            // GooseStation rejects page faults from any other pthread.
+            worker = thread(name = "EmuCoreR-Frame", isDaemon = true, start = false) {
+                try {
+                    android.os.Process.setThreadPriority(
+                        android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
+                    for (candidate in candidates) {
+                        if (createSessionLocked(gamePath, biosOnly, stagedBios, candidate)) {
+                            created = true
+                            break
+                        }
+                        if (candidate != candidates.last()) {
+                            Log.w(TAG, "Renderer unavailable; trying fallback on core thread")
+                        }
+                    }
+                    if (created) {
+                        output.play()
+                        Log.i(TAG, "GOOSE-THREAD init/load/run owner tid=" + android.os.Process.myTid())
+                    }
+                    ready.countDown()
+                    if (created) runLoop(output)
+                } catch (error: Exception) {
+                    Log.e(TAG, "Core owner thread failed", error)
+                } finally {
+                    running = false
+                    try {
+                        sessionLock.withLock {
+                            if (session != 0L) {
+                                bridge.destroySession(session)
+                                session = 0L
+                            }
+                        }
+                    } finally {
+                        ready.countDown()
+                    }
+                }
             }
-            Log.i(TAG, String.format(Locale.US, "Startup setup %.1f ms",
-                (System.nanoTime() - startupStartedAtNanos) / 1_000_000.0))
-            started = true
-            return true
+            worker!!.start()
+            ready.await()
+            started = created && running
+            return started
         } catch (error: Exception) {
             Log.e(TAG, "Failed to start frame/audio runtime", error)
             return false
@@ -282,6 +304,17 @@ internal object CoreRuntime {
 
     private fun createSessionLocked(gamePath: String, biosOnly: Boolean, stagedBios: String,
                                     coreRenderer: Int): Boolean = sessionLock.withLock {
+        // The native core needs a real writable save directory, not a document URI.
+        val appContext = context ?: return@withLock false
+        val customRoot = NativeApp.customDataRootPath()
+        val nativeSave = if (customRoot.isNullOrBlank()) File(appContext.filesDir, "swanstation/save")
+            else File(customRoot, "save")
+        if ((!nativeSave.exists() && !nativeSave.mkdirs()) || !nativeSave.canWrite()) {
+            Log.e(TAG, "Selected native save directory is not writable: $nativeSave")
+            return@withLock false
+        }
+        saveDirectory = nativeSave.absolutePath
+        bridge.nativeInit(systemDirectory, saveDirectory, coreAssetsDirectory)
         // Publish core options before retro_init so the core's initial settings
         // load already sees them.
         applyStartOptions(coreRenderer)
@@ -321,7 +354,7 @@ internal object CoreRuntime {
         val upscale = settings["EmuCoreR/Display:Upscale"]?.toFloatOrNull()
             ?: settings["EmuCoreR:UpscaleMultiplier"]?.toFloatOrNull()
         upscale?.let {
-            val scale = Math.round(it).coerceIn(1, 16)
+            val scale = Math.round(it).coerceIn(1, 32)
             bridge.nativeSetOption("swanstation_GPU_ResolutionScale", scale.toString())
         }
         settings["EmuCore:EnableFastBoot"]?.toBooleanStrictOrNull()?.let { fastBoot ->
@@ -372,15 +405,23 @@ internal object CoreRuntime {
         coreOptionValue("swanstation_Display_CropMode")?.let { cropMode ->
             bridge.nativeSetOption("swanstation_Display_CropMode", cropMode)
         }
+        // Seed the core catalogue after inherited defaults. App-owned controls
+        // keep their existing preference source; all other settings use core defaults.
+        val appOwned = setOf("goosestation_renderer", "goosestation_resolution_scale",
+            "goosestation_bios_fast_boot", "goosestation_widescreen_hack",
+            "goosestation_cdrom_mute_cd_audio")
+        GooseCoreOptions.entries.filter { it.nativeKey !in appOwned }.forEach { entry ->
+            bridge.nativeSetOption(entry.option.key,
+                SwanStationOptions.value(entry.option.key) ?: entry.option.defaultValue)
+        }
         // Internal resolution is owned by the app's per-game upscale setting,
         // so re-assert it after the persisted core-option store so a legacy
         // swanstation_GPU_ResolutionScale entry cannot shadow it.
         upscale?.let { preference ->
-            val scale = Math.round(preference).coerceIn(1, 16)
+            val scale = Math.round(preference).coerceIn(1, 32)
             bridge.nativeSetOption("swanstation_GPU_ResolutionScale", scale.toString())
         }
-        // Aspect ratio is owned by the app's display setting, so push it last so
-        // it cannot be overridden by a stale SwanStationOptions entry.
+        // Preserve a full Display selector over the inherited five-value control.
         displayAspectRatioPreference()?.let { pushAspectRatio(it) }
     }
 
@@ -392,7 +433,8 @@ internal object CoreRuntime {
 
     /** Effective value of a core option (user override or core default). */
     fun coreOptionValue(key: String): String? =
-        SwanStationOptions.value(key) ?: SwanStationCoreOptions.option(key)?.defaultValue
+        SwanStationOptions.value(key) ?: GooseCoreOptions.option(key)?.defaultValue
+            ?: SwanStationCoreOptions.option(key)?.defaultValue
 
     /**
      * Forwards a core option without persisting it. Used for per-game overrides
@@ -415,12 +457,16 @@ internal object CoreRuntime {
     }
 
     private fun pushAspectRatio(type: Int) {
+        SwanStationOptions.value("swanstation_Display_AspectRatio")?.let {
+            bridge.nativeSetOption("swanstation_Display_AspectRatio", it)
+            return
+        }
         val normalized = if (type in ASPECT_RATIO_STRETCH..ASPECT_RATIO_CUSTOM) type else ASPECT_RATIO_AUTO
         bridge.nativeSetOption(
             "swanstation_Display_AspectRatio",
             when (normalized) {
                 ASPECT_RATIO_STRETCH -> "Stretch"
-                ASPECT_RATIO_AUTO -> "Auto"
+                ASPECT_RATIO_AUTO -> "Auto (Game Native)"
                 ASPECT_RATIO_4_3 -> "4:3"
                 ASPECT_RATIO_16_9 -> "16:9"
                 else -> "Custom"
@@ -479,6 +525,15 @@ internal object CoreRuntime {
             Log.e(TAG, "BIOS is missing or not 512 KiB: $biosPath")
             return null
         }
+        // Keep every imported BIOS available to the core's regional selectors.
+        source.parentFile?.listFiles()?.filter { it.isFile && it.length() == BIOS_BYTES }
+            ?.forEach { sibling ->
+                val destination = File(systemDirectory, sibling.name)
+                if (destination.absolutePath != sibling.absolutePath) {
+                    runCatching { sibling.copyTo(destination, overwrite = true) }
+                        .onFailure { Log.w(TAG, "Unable to stage BIOS ${sibling.name}", it) }
+                }
+            }
         val target = File(systemDirectory, source.name)
         if (target.absolutePath != source.absolutePath) {
             runCatching { source.copyTo(target, overwrite = true) }
@@ -488,8 +543,24 @@ internal object CoreRuntime {
         return target.absolutePath
     }
 
+    @Volatile private var fastForwardPressed = false
+
+    private val fastForwardSources = mutableSetOf<String>()
+
+    @Synchronized fun setFastForwardPressed(pressed: Boolean, source: String = "touch") {
+        if (pressed && running && !paused) fastForwardSources.add(source)
+        else fastForwardSources.remove(source)
+        fastForwardPressed = fastForwardSources.isNotEmpty()
+    }
+
+    @Synchronized fun resetFastForward() {
+        fastForwardSources.clear()
+        fastForwardPressed = false
+    }
+
     fun pause() = lifecycleLock.withLock {
         paused = true
+        resetFastForward()
         audioOutput?.pause()
     }
 
@@ -504,6 +575,7 @@ internal object CoreRuntime {
     }
 
     private fun shutdownSession() {
+        resetFastForward()
         val activeWorker = worker
         check(activeWorker !== Thread.currentThread()) {
             "The frame worker cannot synchronously shut itself down"
@@ -776,7 +848,7 @@ internal object CoreRuntime {
             "EmuCoreR/Audio:enableCddaAudio" ->
                 bool?.let { "swanstation_CDROM_MuteCDAudio" to (!it).toString() }
             "EmuCoreR/Display:Upscale" -> value.toFloatOrNull()?.let {
-                "swanstation_GPU_ResolutionScale" to Math.round(it).coerceIn(1, 16).toString()
+                "swanstation_GPU_ResolutionScale" to Math.round(it).coerceIn(1, 32).toString()
             }
             "EmuCoreR/Input:multitapMode" -> value.toIntOrNull()?.let {
                 val modes = listOf("Disabled", "Port1Only", "Port2Only", "BothPorts")
@@ -792,7 +864,13 @@ internal object CoreRuntime {
             }
             else -> null
         }
-        target?.let { (coreKey, coreValue) -> bridge.nativeSetOption(coreKey, coreValue) }
+        target?.let { (coreKey, coreValue) ->
+            // A saved core selector takes precedence over inherited derived controls.
+            val effective = if (coreKey in setOf("swanstation_GPU_TextureFilter",
+                    "swanstation_CPU_RecompilerICache", "swanstation_CDROM_ReadaheadSectors"))
+                SwanStationOptions.value(coreKey) ?: coreValue else coreValue
+            bridge.nativeSetOption(coreKey, effective)
+        }
         if (section == "EmuCore/GS" && (key == "ShaderChainEnabled" || key == "ShaderChainPreset")) {
             pushShaderEffect()
             pushShaderPreset()
@@ -838,7 +916,7 @@ internal object CoreRuntime {
         val highWater = runCatching { output.pacingHighWaterFrames() }.getOrDefault(0)
         if (highWater <= 0) return
         val deadline = System.nanoTime() + AUDIO_PACING_MAX_WAIT_NANOS
-        while (running && !paused && output.bufferedFrames() > highWater) {
+        while (running && !paused && !fastForwardPressed && output.bufferedFrames() > highWater) {
             drainFrameTasks()
             if (System.nanoTime() >= deadline) return
             Thread.sleep(1)
@@ -879,12 +957,22 @@ internal object CoreRuntime {
         var metricsFrameTotalNanos = 0L
         var metricsStartCpuMs = android.os.Process.getElapsedCpuTime()
         var frameDeadlineNanos = 0L
+        var previousTurbo = 1f
         try {
             while (running) {
                 // Owns the thread-affine EGL context, so any queued save/load
                 // task must wait until the hardware context is ready here.
                 bridge.ensureHardwareContext()
                 drainFrameTasks()
+                val turbo = if (fastForwardPressed && !paused) {
+                    (settings["Framerate:TurboScalar"]?.toFloatOrNull() ?: 2f)
+                        .takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 2f
+                } else 1f
+                if (turbo != previousTurbo) {
+                    frameDeadlineNanos = 0L
+                    previousTurbo = turbo
+                }
+                bridge.setFastForwardMultiplier(kotlin.math.ceil(turbo.toDouble()).toInt())
                 if (paused) {
                     Thread.sleep(8)
                     continue
@@ -892,8 +980,8 @@ internal object CoreRuntime {
                 // Frame limiting also keeps audio in sync; when the user turns
                 // it off the emulator runs as fast as the host allows.
                 val frameLimitEnabled = settings["EmuCore/GS:FrameLimitEnable"]?.toBooleanStrictOrNull() ?: true
-                if (frameLimitEnabled) {
-                    paceToAudioClock(output)
+                if (frameLimitEnabled || turbo > 1f) {
+                    if (turbo == 1f) paceToAudioClock(output)
                     // A manual target rate overrides the console's reported one.
                     val manualTargetFps = settings["EmuCore/GS:TargetFps"]?.toIntOrNull() ?: 0
                     val frameRate = if (manualTargetFps in 20..120) {
@@ -902,13 +990,14 @@ internal object CoreRuntime {
                         runCatching { bridge.getFrameRate(session) }.getOrDefault(0.0)
                     }
                     if (frameRate > 1.0) {
-                        val basePeriodNanos = (1_000_000_000.0 / frameRate).toLong()
+                        val basePeriodNanos = (1_000_000_000.0 / (frameRate * turbo)).toLong()
                         if (frameDeadlineNanos == 0L) frameDeadlineNanos = System.nanoTime()
                         // Trim the frame period by a fraction of a percent to
                         // keep the sample queue near its target. Emulation then
                         // follows the audio clock, so slow drift and short
                         // scheduling hiccups can no longer drain the buffer.
-                        val framePeriodNanos = audioAdjustedFramePeriod(output, basePeriodNanos)
+                        val framePeriodNanos = if (turbo > 1f) basePeriodNanos
+                            else audioAdjustedFramePeriod(output, basePeriodNanos)
                         // Sleeping only has millisecond granularity, so a
                         // sleep-only wait can overshoot the frame deadline by
                         // up to a whole millisecond. Sleep while a comfortable

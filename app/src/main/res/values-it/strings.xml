@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">Apri il file CUE quando presente, così le tracce dati e audio mantengono l’ordine corretto. Un BIN autonomo è supportato per dump a pista singola.</string>
     <string name="formats_ps1_planned_title">Playlist multi-disco</string>
     <string name="formats_ps1_planned_body">Il core incluso legge le playlist M3U. La libreria indicizza solo immagini disco, quindi apri un M3U direttamente dal selettore dischi.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">Libreria</string>
     <string name="shell_catalog_search">Ricerca PS1</string>
@@ -403,7 +403,7 @@
     <string name="settings_fps_overlay_mode_simple">FPS Semplici</string>
     <string name="settings_fps_overlay_mode_detailed">Statistiche</string>
 
-    <string name="onboarding_page_1_title">Benvenuto in EmuCoreR</string>
+    <string name="onboarding_page_1_title">Benvenuto in DukeStation</string>
     <string name="onboarding_page_1_subtitle">La tua libreria e il launcher PlayStation, progettati per una configurazione rapida, una navigazione chiara e un\'esperienza fluida su qualsiasi schermo.</string>
     <string name="onboarding_page_2_title">Emulazione potente</string>
     <string name="onboarding_page_2_subtitle">Gioca ai tuoi giochi PS1 preferiti con opzioni grafiche avanzate, controlli personalizzabili e ottimizzazioni delle prestazioni.</string>
@@ -1989,7 +1989,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Inserisci un URL HTTP o HTTPS valido</string>
     <string name="settings_patches_attribution_title">Autori dei patch</string>
-    <string name="settings_patches_attribution">I patch sono creati dalla community e restano proprietà dei loro autori. EmuCoreR li scarica solo dalla fonte pubblica e non li include né se ne appropria.</string>
+    <string name="settings_patches_attribution">I patch sono creati dalla community e restano proprietà dei loro autori. DukeStation li scarica solo dalla fonte pubblica e non li include né se ne appropria.</string>
     <string name="settings_patches_source_link">Apri la pagina della fonte dei patch</string>
     <string name="achievements_title">Obiettivi</string>
     <string name="achievements_game_loaded">Obiettivi attivi: %1$s</string>

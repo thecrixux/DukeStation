@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">強大</string>
+    <string name="duke_library_highlight">遊戲</string>
+    <string name="duke_choose_folder">選擇手機資料夾</string>
+    <string name="duke_choose_folder_description">選擇儲存資料的本機資料夾。Android 可能要求檔案存取權。現有檔案不會自動移動。</string>
+    <string name="duke_storage_description">選擇儲存資料的本機資料夾。Android 可能要求檔案存取權。現有檔案不會自動移動。</string>
+</resources>

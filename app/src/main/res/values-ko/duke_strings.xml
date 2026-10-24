@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">강력한</string>
+    <string name="duke_library_highlight">게임</string>
+    <string name="duke_choose_folder">휴대전화 폴더 선택</string>
+    <string name="duke_choose_folder_description">데이터를 저장할 로컬 폴더를 선택하세요. Android에서 파일 접근 권한을 요청할 수 있습니다. 기존 파일은 자동으로 이동하지 않습니다.</string>
+    <string name="duke_storage_description">데이터를 저장할 로컬 폴더를 선택하세요. Android에서 파일 접근 권한을 요청할 수 있습니다. 기존 파일은 자동으로 이동하지 않습니다.</string>
+</resources>

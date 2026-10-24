@@ -24,7 +24,7 @@ data class PerGameSettings(
     val localMultiplayerMode: Int = AppPreferences.LOCAL_MULTIPLAYER_OFF,
     val displayCrop: DisplayCrop = DisplayCrop.None,
     val showFps: Boolean = false,
-    val fpsOverlayMode: Int = AppPreferences.FPS_OVERLAY_MODE_DETAILED,
+    val fpsOverlayMode: Int = AppPreferences.FPS_OVERLAY_MODE_SIMPLE,
     val racingMode: Boolean = false,
     val touchscreenRightStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK,
     val touchscreenRightStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY,
@@ -314,7 +314,7 @@ private fun JSONObject.toPerGameSettings(): PerGameSettings {
             ).sanitized()
         } ?: DisplayCrop.None,
         showFps = optBoolean("showFps", false),
-        fpsOverlayMode = optInt("fpsOverlayMode", AppPreferences.FPS_OVERLAY_MODE_DETAILED),
+        fpsOverlayMode = AppPreferences.FPS_OVERLAY_MODE_SIMPLE,
         racingMode = optBoolean("racingMode", false),
         touchscreenRightStick = optBoolean(
             "touchscreenRightStick",

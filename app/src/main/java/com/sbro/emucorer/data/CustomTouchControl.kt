@@ -120,7 +120,7 @@ data class CustomTouchControl(
             "up", "down", "left", "right",
             "triangle", "cross", "square", "circle",
             "l1", "l2", "r1", "r2", "l3", "r3",
-            "select", "start"
+            "select", "start", "fast_forward"
         )
 
         fun defaultLabelFor(actionId: String): String = when (actionId) {
@@ -135,6 +135,7 @@ data class CustomTouchControl(
             "l1", "l2", "r1", "r2", "l3", "r3" -> actionId.uppercase()
             "select" -> "SEL"
             "start" -> "START"
+            "fast_forward" -> "⏩"
             else -> "X"
         }
     }

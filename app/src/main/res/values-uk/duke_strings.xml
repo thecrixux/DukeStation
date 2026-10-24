@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">Потужна</string>
+    <string name="duke_library_highlight">ігор</string>
+    <string name="duke_choose_folder">Вибрати папку на телефоні</string>
+    <string name="duke_choose_folder_description">Виберіть локальну папку даних. Android може запросити доступ до файлів. Наявні файли не переносяться автоматично.</string>
+    <string name="duke_storage_description">Виберіть локальну папку даних. Android може запросити доступ до файлів. Наявні файли не переносяться автоматично.</string>
+</resources>

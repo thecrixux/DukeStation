@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">若存在 CUE 文件，请打开它，以确保数据与音频轨道保持正确顺序。单轨转储支持独立的 BIN 文件。</string>
     <string name="formats_ps1_planned_title">多盘播放列表</string>
     <string name="formats_ps1_planned_body">内置核心可读取 M3U 播放列表。游戏库仅索引光盘镜像，请直接从光盘选择器中打开 M3U。</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">遊戲庫</string>
     <string name="shell_catalog_search">PS1 搜尋</string>
@@ -284,7 +284,7 @@
     <string name="settings_fps_overlay_mode_simple">簡易 FPS</string>
     <string name="settings_fps_overlay_mode_detailed">詳細統計</string>
 
-    <string name="onboarding_page_1_title">歡迎使用 EmuCoreR</string>
+    <string name="onboarding_page_1_title">歡迎使用 DukeStation</string>
     <string name="onboarding_page_1_subtitle">您的 PlayStation 遊戲庫與啟動器，專為快速設定、清楚導覽，以及在任何螢幕上都能流暢使用而設計。</string>
     <string name="onboarding_page_2_title">強大的模擬功能</string>
     <string name="onboarding_page_2_subtitle">透過進階圖形選項、可自訂的控制項和效能最佳化，體驗您最喜愛的 PS1 遊戲。</string>
@@ -1990,7 +1990,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">请输入有效的 HTTP 或 HTTPS URL</string>
     <string name="settings_patches_attribution_title">补丁作者</string>
-    <string name="settings_patches_attribution">补丁由社区创作，版权归其作者所有。EmuCoreR 仅从公共来源下载，不内置也不主张其所有权。</string>
+    <string name="settings_patches_attribution">补丁由社区创作，版权归其作者所有。DukeStation 仅从公共来源下载，不内置也不主张其所有权。</string>
     <string name="settings_patches_source_link">打开补丁来源页面</string>
     <string name="achievements_title">成就</string>
     <string name="achievements_game_loaded">成就已启用：%1$s</string>

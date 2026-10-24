@@ -1547,6 +1547,7 @@ private fun CustomTouchControlShape.titleRes(): Int = when (this) {
 }
 
 fun actionLabel(actionId: String): String = when (actionId) {
+    "fast_forward" -> "⏩ Fast forward"
     "up" -> "D-pad Up"
     "down" -> "D-pad Down"
     "left" -> "D-pad Left"

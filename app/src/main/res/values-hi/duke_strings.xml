@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">शक्तिशाली</string>
+    <string name="duke_library_highlight">गेम्स</string>
+    <string name="duke_choose_folder">फ़ोन का फ़ोल्डर चुनें</string>
+    <string name="duke_choose_folder_description">डेटा के लिए स्थानीय फ़ोल्डर चुनें। Android फ़ाइल ऐक्सेस माँग सकता है। मौजूदा फ़ाइलें अपने आप स्थानांतरित नहीं होंगी।</string>
+    <string name="duke_storage_description">डेटा के लिए स्थानीय फ़ोल्डर चुनें। Android फ़ाइल ऐक्सेस माँग सकता है। मौजूदा फ़ाइलें अपने आप स्थानांतरित नहीं होंगी।</string>
+</resources>

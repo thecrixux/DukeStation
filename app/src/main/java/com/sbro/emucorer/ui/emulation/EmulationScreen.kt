@@ -6,7 +6,12 @@ import android.content.pm.ActivityInfo
 import android.graphics.PixelFormat
 import android.view.MotionEvent
 import android.view.SurfaceHolder
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.navigationBarsPadding
 import android.view.SurfaceView
+import com.sbro.emucorer.translate.DukeTranslateView
+import androidx.compose.runtime.SideEffect
+import androidx.compose.material.icons.rounded.Translate
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -150,7 +155,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -482,6 +486,28 @@ fun EmulationScreen(
 
     LocalConfiguration.current
     val view = LocalView.current
+    var translationSurface by remember { mutableStateOf<SurfaceView?>(null) }
+    val translationOverlay = remember(context, gamePath) { DukeTranslateView(context) }
+    DisposableEffect(translationOverlay, view, lifecycleOwner) {
+        // A sibling of Compose, not a full-screen Compose pointer node: empty areas
+        // return false from dispatchTouchEvent and reach the existing game controls.
+        val host = view.rootView.findViewById<android.view.ViewGroup>(android.R.id.content)
+        host?.addView(translationOverlay, android.view.ViewGroup.LayoutParams(-1, -1))
+        val translationLifecycle = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> translationOverlay.setHostResumed(true)
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> translationOverlay.setHostResumed(false)
+                else -> Unit
+            }
+        }
+        translationOverlay.setHostResumed(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+        lifecycleOwner.lifecycle.addObserver(translationLifecycle)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(translationLifecycle)
+            translationOverlay.dispose()
+            host?.removeView(translationOverlay)
+        }
+    }
     var showExitDialog by remember { mutableStateOf(false) }
     var exitDispatched by remember { mutableStateOf(false) }
     var showQuickSaveDialog by remember { mutableStateOf(false) }
@@ -920,13 +946,28 @@ fun EmulationScreen(
         }
     }
 
+    SideEffect {
+        translationOverlay.updateSource(
+            translationSurface,
+            uiState.isRunning && !uiState.showMenu && !showControlsEditor &&
+                !showExitDialog && !showQuickSaveDialog && !showQuickLoadDialog &&
+                !showAutoSaveLoadDialog && !showGamepadMappingDialog && uiState.runtimeFailure == null,
+            nativeDisplayDrawRect
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
+        GooseNoticeOverlay(Modifier.align(Alignment.BottomStart)
+            .navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+            .zIndex(20f))
+
         // Game surface
         val surfaceGeneration = presentationSurfaceGeneration
         key(surfaceGeneration) {
             AndroidView(
                 factory = { ctx ->
                     SurfaceView(ctx).apply {
+                        translationSurface = this
                         isClickable = false
                         isFocusable = false
                         isFocusableInTouchMode = false
@@ -935,6 +976,7 @@ fun EmulationScreen(
                         holder.setFormat(PixelFormat.OPAQUE)
                         holder.addCallback(object : SurfaceHolder.Callback {
                             override fun surfaceCreated(holder: SurfaceHolder) {
+                                translationSurface = this@apply
                                 try { EmulatorBridge.onSurfaceCreated(surfaceGeneration) } catch (_: Exception) { }
                             }
 
@@ -955,6 +997,7 @@ fun EmulationScreen(
                             }
 
                             override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                if (translationSurface === this@apply) translationSurface = null;
                                 try { EmulatorBridge.onSurfaceDestroyed(surfaceGeneration) } catch (_: Exception) { }
                             }
                         })
@@ -1561,6 +1604,7 @@ fun EmulationScreen(
                     onToggleControls = toggleControlsClick,
                     onOpenControlsEditor = { showControlsEditor = true },
                     onOpenGamepadMapping = { showGamepadMappingDialog = true },
+                    onOpenTranslation = { translationOverlay.showSettings() },
                     onSetRenderer = { viewModel.setRenderer(it) },
                     onSetUpscale = { viewModel.setUpscale(it) },
                     onSetAspectRatio = { viewModel.setAspectRatio(it) },
@@ -2176,6 +2220,7 @@ private fun OnScreenControls(
     }
 
     fun buttonPressHandler(id: String): ((Boolean) -> Unit)? = when (id) {
+        "fast_forward" -> { pressed -> com.sbro.emucorer.core.CoreRuntime.setFastForwardPressed(pressed) }
         "l2" -> { pressed ->
             touchL2Pressed = pressed
             dispatchTouchL2()
@@ -2310,8 +2355,12 @@ private fun OnScreenControls(
                 val travelX = (maxWidth - safeLeft - safeRight - width).coerceAtLeast(0.dp)
                 val travelY = (maxHeight - safeTop - safeBottom - height).coerceAtLeast(0.dp)
                 val pressHandlers = listOfNotNull(
-                    buttonPressHandler(control.actionId),
-                    control.secondaryActionId?.let(::buttonPressHandler)
+                    if (control.actionId == "fast_forward") ({ pressed: Boolean ->
+                        com.sbro.emucorer.core.CoreRuntime.setFastForwardPressed(pressed, control.id)
+                    }) else buttonPressHandler(control.actionId),
+                    if (control.secondaryActionId == "fast_forward") ({ pressed: Boolean ->
+                        com.sbro.emucorer.core.CoreRuntime.setFastForwardPressed(pressed, control.id + "_secondary")
+                    }) else control.secondaryActionId?.let(::buttonPressHandler)
                 )
                 TouchButtonSpec(
                     id = "custom:${control.id}",
@@ -2786,6 +2835,7 @@ private fun EmulationSidebarMenu(
     onToggleControls: () -> Unit,
     onOpenControlsEditor: () -> Unit,
     onOpenGamepadMapping: () -> Unit,
+    onOpenTranslation: () -> Unit,
     onSetRenderer: (Int) -> Unit,
     onSetUpscale: (Float) -> Unit,
     onSetAspectRatio: (Int) -> Unit,
@@ -2975,6 +3025,13 @@ private fun EmulationSidebarMenu(
                         }
                     }
                 }
+
+                MenuButton(
+                    icon = Icons.Rounded.Translate,
+                    text = stringResource(R.string.duke_translate_menu),
+                    onClick = onOpenTranslation,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                )
 
                 var coreOptionsVersion by remember { mutableIntStateOf(0) }
                 val onCoreOptionChange: (String, String) -> Unit = { key, value ->
@@ -3296,6 +3353,7 @@ private fun EmulationSidebarMenu(
                     }
 
                     EmulationMenuTab.Controls -> {
+                        com.sbro.emucorer.ui.controls.DukeFastForwardSettings()
                         gameMenuSectionsForTab(GameMenuTabId.CONTROLS, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
                             .forEach { section ->
@@ -3609,18 +3667,6 @@ private fun EmulationSidebarMenu(
                             onValueChange = onSetFrameSkip,
                             helpText = stringResource(R.string.settings_frame_skip_desc),
                             onResetToDefault = { onSetFrameSkip(globalDefaults.frameSkip) }
-                        )
-
-                        LiveSelectionRow(
-                            title = stringResource(R.string.settings_fps_overlay_mode),
-                            options = listOf(
-                                LiveSelectionOption(FPS_OVERLAY_MODE_SIMPLE, stringResource(R.string.settings_fps_overlay_mode_simple)),
-                                LiveSelectionOption(FPS_OVERLAY_MODE_DETAILED, stringResource(R.string.settings_fps_overlay_mode_detailed))
-                            ),
-                            currentValue = uiState.fpsOverlayMode,
-                            onValueChange = onSetFpsOverlayMode,
-                            helpText = stringResource(R.string.settings_help_fps_overlay_mode),
-                            onResetToDefault = { onSetFpsOverlayMode(globalDefaults.fpsOverlayMode) }
                         )
 
                         LiveSelectionRow(

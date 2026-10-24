@@ -483,32 +483,11 @@ void LoadGameCallback(int result, const char* error_message, rc_client_t* client
 // Implemented by the libretro core (libretro_host_interface.cpp): a CD reader
 // on top of the core's CDImage so rcheevos can hash CHD and every other
 // container the core can mount.
-extern "C" void* EmuCoreRDiscReaderOpen(const char* path, uint32_t track);
-extern "C" uint32_t EmuCoreRDiscReaderReadSector(void* handle, uint32_t sector, void* buffer,
-                                                 uint32_t requested_bytes);
-extern "C" uint32_t EmuCoreRDiscReaderFirstSector(void* handle);
-extern "C" void EmuCoreRDiscReaderClose(void* handle);
-
-void* RC_CCONV DiscReaderOpenTrack(const char* path, uint32_t track)
-{
-  return EmuCoreRDiscReaderOpen(path, track);
-}
-
-size_t RC_CCONV DiscReaderReadSector(void* track_handle, uint32_t sector, void* buffer,
-                                     size_t requested_bytes)
-{
-  return EmuCoreRDiscReaderReadSector(track_handle, sector, buffer, static_cast<uint32_t>(requested_bytes));
-}
-
-uint32_t RC_CCONV DiscReaderFirstTrackSector(void* track_handle)
-{
-  return EmuCoreRDiscReaderFirstSector(track_handle);
-}
-
-void RC_CCONV DiscReaderCloseTrack(void* track_handle)
-{
-  EmuCoreRDiscReaderClose(track_handle);
-}
+// GooseDroid probe: fail disc hashing explicitly; no SwanStation private API.
+void* RC_CCONV DiscReaderOpenTrack(const char*, uint32_t) { return nullptr; }
+size_t RC_CCONV DiscReaderReadSector(void*, uint32_t, void*, size_t) { return 0; }
+uint32_t RC_CCONV DiscReaderFirstTrackSector(void*) { return 0; }
+void RC_CCONV DiscReaderCloseTrack(void*) {}
 
 void EnsureHashSupportLocked()
 {

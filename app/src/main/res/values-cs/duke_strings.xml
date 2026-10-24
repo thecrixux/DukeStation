@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">Výkonná</string>
+    <string name="duke_library_highlight">Herní</string>
+    <string name="duke_choose_folder">Vybrat složku v telefonu</string>
+    <string name="duke_choose_folder_description">Vyberte místní složku pro data. Android může požádat o přístup k souborům. Stávající soubory se automaticky nepřesouvají.</string>
+    <string name="duke_storage_description">Vyberte místní složku pro data. Android může požádat o přístup k souborům. Stávající soubory se automaticky nepřesouvají.</string>
+</resources>

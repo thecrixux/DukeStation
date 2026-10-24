@@ -4,7 +4,7 @@
     <string name="onboarding_core_subtitle">Чисте ядро PS1 з еталонним інтерпретатором, ARM64 JIT і рендерером Vulkan.</string>
     <string name="emulation_runtime_failure_title">Емуляцію зупинено</string>
     <string name="emulation_runtime_failure_description">Під час роботи виникла помилка, і коректно продовжити сеанс неможливо. Вийдіть із сеансу та запустіть гру знову. Рендерер не змінювався автоматично.\n\nПодробиці:\n</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
     <string name="onboarding_core_card_title">Нативна архітектура PS1</string>
     <string name="onboarding_core_card_cpu">R3000A працює через точний інтерпретатор і ARM64 JIT.</string>
     <string name="onboarding_core_card_gpu">Графіка PS1 виводиться через Vulkan із програмним еталонним шляхом.</string>
@@ -283,7 +283,7 @@
     <string name="settings_fps_overlay_mode_simple">Лише FPS</string>
     <string name="settings_fps_overlay_mode_detailed">Статистика</string>
 
-    <string name="onboarding_page_1_title">Ласкаво просимо до EmuCoreR</string>
+    <string name="onboarding_page_1_title">Ласкаво просимо до DukeStation</string>
     <string name="onboarding_page_1_subtitle">Ваша бібліотека та лаунчер PlayStation, створені для швидкого налаштування, зрозумілої навігації та зручної роботи на будь-якому екрані.</string>
     <string name="onboarding_page_2_title">Потужна емуляція</string>
     <string name="onboarding_page_2_subtitle">Грайте в улюблені ігри PS1 з розширеними графічними опціями, налаштовуваним керуванням та оптимізацією продуктивності.</string>
@@ -1994,7 +1994,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Введіть дійсний HTTP- або HTTPS-URL</string>
     <string name="settings_patches_attribution_title">Автори патчів</string>
-    <string name="settings_patches_attribution">Патчі створені спільнотою і залишаються власністю їхніх авторів. EmuCoreR лише завантажує їх із публічного джерела, не додає до застосунку й не претендує на них.</string>
+    <string name="settings_patches_attribution">Патчі створені спільнотою і залишаються власністю їхніх авторів. DukeStation лише завантажує їх із публічного джерела, не додає до застосунку й не претендує на них.</string>
     <string name="settings_patches_source_link">Відкрити сторінку джерела патчів</string>
     <string name="achievements_title">Досягнення</string>
     <string name="achievements_game_loaded">Досягнення активні: %1$s</string>

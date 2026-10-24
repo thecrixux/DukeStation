@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_catalog_unavailable">The previous EmuCoreR public catalogs are no longer accessible. Its new service requires authorization. You can import files locally or configure a public catalog.</string>
+    <string name="duke_catalog_no_source">No public catalog configured.</string>
+    <string name="duke_catalog_source">Catalog source</string>
+    <string name="duke_catalog_retry">Reload</string>
+    <string name="duke_catalog_save">Save</string>
+    <string name="duke_catalog_cancel">Cancel</string>
+    <string name="duke_catalog_source_help">Enter a public HTTPS URL pointing directly to a compatible JSON catalog (schemaVersion 1). A repository page or ZIP link is not a catalog. Leave blank to disable online access. No credentials are required or sent.</string>
+    <string name="duke_catalog_load_failed">Could not load this catalog. Check the URL, access permissions, JSON format and connection.</string>
+</resources>

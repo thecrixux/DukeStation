@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">قوية</string>
+    <string name="duke_library_highlight">ألعابك</string>
+    <string name="duke_choose_folder">اختيار مجلد على الهاتف</string>
+    <string name="duke_choose_folder_description">اختر مجلدًا محليًا للبيانات. قد يطلب Android الوصول إلى الملفات. لا تُنقل الملفات الحالية تلقائيًا.</string>
+    <string name="duke_storage_description">اختر مجلدًا محليًا للبيانات. قد يطلب Android الوصول إلى الملفات. لا تُنقل الملفات الحالية تلقائيًا.</string>
+</resources>

@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">وقتی فایل CUE وجود دارد آن را باز کنید تا مسیرهای داده و صدا ترتیب صحیح خود را حفظ کنند. یک BIN مستقل برای دامپ‌های تک‌مسیره پشتیبانی می‌شود.</string>
     <string name="formats_ps1_planned_title">فهرست‌های چند دیسکی</string>
     <string name="formats_ps1_planned_body">هسته همراه فهرست‌های M3U را می‌خواند. کتابخانه فقط تصاویر دیسک را فهرست می‌کند، پس فایل M3U را مستقیماً از انتخابگر دیسک باز کنید.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <!-- Navigation -->
     <string name="shell_library">کتابخانه</string>
@@ -636,7 +636,7 @@
     <string name="settings_fps_overlay_mode_detailed">آمار</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_page_1_title">به EmuCoreR خوش آمدید</string>
+    <string name="onboarding_page_1_title">به DukeStation خوش آمدید</string>
     <string name="onboarding_page_1_subtitle">کتابخانه و راه‌انداز PlayStation شما، برای راه‌اندازی سریع، پیمایش روشن و تجربه‌ای روان روی هر صفحه‌نمایش طراحی شده است.</string>
     <string name="onboarding_page_2_title">شبیه‌سازی قدرتمند</string>
     <string name="onboarding_page_2_subtitle">بازی‌های PS1 مورد علاقه خود را با گزینه‌های گرافیکی پیشرفته، کنترل‌های قابل تنظیم و بهینه‌سازی‌های عملکرد تجربه کنید.</string>
@@ -2004,7 +2004,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">یک نشانی معتبر HTTP یا HTTPS وارد کنید</string>
     <string name="settings_patches_attribution_title">نویسندگان پچ‌ها</string>
-    <string name="settings_patches_attribution">پچ‌ها توسط انجمن ساخته می‌شوند و متعلق به نویسندگانشان می‌مانند. EmuCoreR فقط آن‌ها را از منبع عمومی دانلود می‌کند و آن‌ها را همراه برنامه عرضه یا ادعای مالکیت نمی‌کند.</string>
+    <string name="settings_patches_attribution">پچ‌ها توسط انجمن ساخته می‌شوند و متعلق به نویسندگانشان می‌مانند. DukeStation فقط آن‌ها را از منبع عمومی دانلود می‌کند و آن‌ها را همراه برنامه عرضه یا ادعای مالکیت نمی‌کند.</string>
     <string name="settings_patches_source_link">باز کردن صفحه منبع پچ‌ها</string>
     <string name="achievements_title">دستاوردها</string>
     <string name="achievements_game_loaded">دستاوردها فعال است: %1$s</string>

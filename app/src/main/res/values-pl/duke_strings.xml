@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">siła</string>
+    <string name="duke_library_highlight">Gier</string>
+    <string name="duke_choose_folder">Wybierz folder w telefonie</string>
+    <string name="duke_choose_folder_description">Wybierz lokalny folder danych. Android może poprosić o dostęp do plików. Istniejące pliki nie są przenoszone automatycznie.</string>
+    <string name="duke_storage_description">Wybierz lokalny folder danych. Android może poprosić o dostęp do plików. Istniejące pliki nie są przenoszone automatycznie.</string>
+</resources>

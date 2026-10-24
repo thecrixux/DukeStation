@@ -13,10 +13,12 @@ import android.view.Surface
 class NativeCoreBridge {
     companion object {
         init {
+            System.loadLibrary("goosestation_libretro")
             System.loadLibrary("emucorer_jni")
         }
     }
 
+    external fun pollCoreNotice(): String?
     external fun apiVersion(): Int
 
     // ---------------------------------------------------------------------
@@ -84,8 +86,8 @@ class NativeCoreBridge {
     external fun getFrameRate(handle: Long): Double
 
     /** Human-readable core name/version used by statistics and the About screen. */
-    fun coreName(): String? = "SwanStation"
-    fun coreVersion(): String? = getSystemInfo().removePrefix("SwanStation ").trim()
+    fun coreName(): String? = "GooseStation"
+    fun coreVersion(): String? = getSystemInfo().removePrefix("GooseStation ").trim()
 
     // Compatibility surface used by the app layer. The libretro frontend owns
     // AAudio buffering; cheats go through retro_cheat_set in the native bridge.
@@ -145,6 +147,7 @@ class NativeCoreBridge {
     external fun flushAudioOutput(handle: Long): Int
     /** Empties the shared ring so a new session cannot replay old frames. */
     external fun resetAudioQueue()
+    external fun setFastForwardMultiplier(multiplier: Int)
     /** Linear gain in 0..1 applied on the output callback thread. */
     external fun setAudioGain(gain: Float)
     /** Frames queued for the output; negative when the stream needs recovery. */

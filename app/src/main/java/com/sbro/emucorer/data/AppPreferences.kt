@@ -88,7 +88,7 @@ data class SettingsSnapshot(
     val padVibrationStrength: Int = AppPreferences.DEFAULT_PAD_VIBRATION_STRENGTH,
     val padVibrationFallback: Boolean = true,
     val showFps: Boolean = false,
-    val fpsOverlayMode: Int = AppPreferences.FPS_OVERLAY_MODE_DETAILED,
+    val fpsOverlayMode: Int = AppPreferences.FPS_OVERLAY_MODE_SIMPLE,
     val fpsOverlayCorner: Int = AppPreferences.FPS_OVERLAY_CORNER_TOP_RIGHT,
     val fpsOverlayScale: Int = AppPreferences.DEFAULT_FPS_OVERLAY_SCALE,
     val fpsOverlayMetrics: Int = PerformanceOverlayMetrics.DEFAULT,
@@ -325,7 +325,7 @@ class AppPreferences(private val context: Context) {
         const val LOCAL_MULTIPLAYER_HORIZONTAL_CROP = 3
         const val LOCAL_MULTIPLAYER_HORIZONTAL_CROP_SWAPPED = 4
         const val MIN_FAST_FORWARD_SPEED = 1.25f
-        const val MAX_FAST_FORWARD_SPEED = 5.0f
+        const val MAX_FAST_FORWARD_SPEED = 8.0f
         private const val LEGACY_DEFAULT_LSTICK_OFFSET_X = 18f
         private const val LEGACY_DEFAULT_LSTICK_OFFSET_Y = -214f
         private const val LEFT_SIDE_LAYOUT_SHIFT_X = -8f
@@ -1602,7 +1602,7 @@ class AppPreferences(private val context: Context) {
                 padVibrationStrength = (prefs[PAD_VIBRATION_STRENGTH] ?: DEFAULT_PAD_VIBRATION_STRENGTH).coerceIn(0, 150),
                 padVibrationFallback = prefs[PAD_VIBRATION_FALLBACK] ?: true,
                 showFps = prefs[SHOW_FPS] ?: false,
-                fpsOverlayMode = prefs[FPS_OVERLAY_MODE] ?: FPS_OVERLAY_MODE_DETAILED,
+                fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE,
                 fpsOverlayCorner = when (prefs[FPS_OVERLAY_CORNER]) {
                     FPS_OVERLAY_CORNER_TOP_LEFT,
                     FPS_OVERLAY_CORNER_TOP_RIGHT,
@@ -1999,11 +1999,11 @@ class AppPreferences(private val context: Context) {
     }
 
     val fpsOverlayMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[FPS_OVERLAY_MODE] ?: FPS_OVERLAY_MODE_DETAILED
+        FPS_OVERLAY_MODE_SIMPLE
     }
 
     suspend fun setFpsOverlayMode(mode: Int) {
-        context.dataStore.edit { it[FPS_OVERLAY_MODE] = mode }
+        context.dataStore.edit { it[FPS_OVERLAY_MODE] = FPS_OVERLAY_MODE_SIMPLE }
     }
 
     val fpsOverlayCorner: Flow<Int> = context.dataStore.data.map { prefs ->
@@ -3940,7 +3940,7 @@ class AppPreferences(private val context: Context) {
             put("padVibrationStrength", (prefs[PAD_VIBRATION_STRENGTH] ?: DEFAULT_PAD_VIBRATION_STRENGTH).coerceIn(0, 150))
             put("padVibrationFallback", prefs[PAD_VIBRATION_FALLBACK] ?: true)
             put("showFps", prefs[SHOW_FPS] ?: false)
-            put("fpsOverlayMode", prefs[FPS_OVERLAY_MODE] ?: FPS_OVERLAY_MODE_DETAILED)
+            put("fpsOverlayMode", FPS_OVERLAY_MODE_SIMPLE)
             put("fpsOverlayCorner", prefs[FPS_OVERLAY_CORNER] ?: FPS_OVERLAY_CORNER_TOP_RIGHT)
             put("fpsOverlayScale", (prefs[FPS_OVERLAY_SCALE] ?: DEFAULT_FPS_OVERLAY_SCALE).coerceIn(MIN_FPS_OVERLAY_SCALE, MAX_FPS_OVERLAY_SCALE))
             put("fpsOverlayMetrics", PerformanceOverlayMetrics.sanitize(prefs[FPS_OVERLAY_METRICS] ?: PerformanceOverlayMetrics.DEFAULT))
@@ -4327,7 +4327,7 @@ class AppPreferences(private val context: Context) {
             prefs[PAD_VIBRATION_STRENGTH] = json.optInt("padVibrationStrength", DEFAULT_PAD_VIBRATION_STRENGTH).coerceIn(0, 150)
             prefs[PAD_VIBRATION_FALLBACK] = json.optBoolean("padVibrationFallback", true)
             prefs[SHOW_FPS] = json.optBoolean("showFps", false)
-            prefs[FPS_OVERLAY_MODE] = json.optInt("fpsOverlayMode", FPS_OVERLAY_MODE_DETAILED)
+            prefs[FPS_OVERLAY_MODE] = FPS_OVERLAY_MODE_SIMPLE
             prefs[FPS_OVERLAY_CORNER] = json.optInt("fpsOverlayCorner", FPS_OVERLAY_CORNER_TOP_RIGHT).coerceIn(
                 FPS_OVERLAY_CORNER_TOP_LEFT,
                 FPS_OVERLAY_CORNER_BOTTOM_RIGHT

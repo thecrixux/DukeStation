@@ -1,0 +1,4 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="20%" android:insetRight="20%" android:insetTop="20%" android:insetBottom="20%">
+    <bitmap android:src="@drawable/duke_launcher" android:gravity="fill" />
+</inset>

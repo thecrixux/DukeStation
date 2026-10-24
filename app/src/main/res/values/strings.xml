@@ -8,7 +8,7 @@
     <string name="onboarding_core_card_cpu">R3000A execution uses a correctness-first interpreter and an ARM64 JIT.</string>
     <string name="onboarding_core_card_gpu">The PS1 GPU is rendered through Vulkan with a software reference path.</string>
     <string name="onboarding_core_card_reference">No purchase tier is required; every core feature is available.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <!-- Navigation -->
     <string name="shell_library">Library</string>
@@ -655,7 +655,7 @@
     <string name="settings_fps_overlay_mode_detailed">Statistics</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_page_1_title">Welcome to EmuCoreR</string>
+    <string name="onboarding_page_1_title">Welcome to DukeStation</string>
     <string name="onboarding_page_1_subtitle">Your PlayStation library and launcher, designed for quick setup, clear navigation, and a streamlined experience on any screen.</string>
     <string name="onboarding_page_2_title">Powerful Emulation</string>
     <string name="onboarding_page_2_subtitle">Experience your favorite PS1 games with advanced graphics options, customizable controls, and performance optimizations.</string>
@@ -2012,7 +2012,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Enter a valid HTTP or HTTPS URL</string>
     <string name="settings_patches_attribution_title">Patch authors</string>
-    <string name="settings_patches_attribution">Patches are created by the community and remain the property of their authors. EmuCoreR downloads them from the public source and does not bundle or claim them.</string>
+    <string name="settings_patches_attribution">Patches are created by the community and remain the property of their authors. DukeStation downloads them from the public source and does not bundle or claim them.</string>
     <string name="settings_patches_source_link">Open the patch source page</string>
     <string name="achievements_title">Achievements</string>
     <string name="achievements_game_loaded">Achievements active: %1$s</string>

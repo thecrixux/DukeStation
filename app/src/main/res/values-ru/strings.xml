@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">Открывайте файл CUE, если он есть, чтобы данные и звуковые дорожки сохраняли правильный порядок. Отдельный BIN поддерживается для однотрековых дампов.</string>
     <string name="formats_ps1_planned_title">Плейлисты из нескольких дисков</string>
     <string name="formats_ps1_planned_body">Встроенное ядро читает плейлисты M3U. Библиотека индексирует только образы дисков, поэтому открывайте M3U прямо из выбора диска.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">Библиотека</string>
     <string name="shell_catalog_search">Поиск PS1</string>
@@ -285,7 +285,7 @@
     <string name="settings_fps_overlay_mode_simple">Только FPS</string>
     <string name="settings_fps_overlay_mode_detailed">Статистика</string>
 
-    <string name="onboarding_page_1_title">Добро пожаловать в EmuCoreR</string>
+    <string name="onboarding_page_1_title">Добро пожаловать в DukeStation</string>
     <string name="onboarding_page_1_subtitle">Ваша библиотека и лаунчер PlayStation, созданные для быстрой настройки, понятной навигации и удобной работы на любом экране.</string>
     <string name="onboarding_page_2_title">Мощная эмуляция</string>
     <string name="onboarding_page_2_subtitle">Играйте в любимые игры PS1 с расширенными графическими опциями, настраиваемым управлением и оптимизацией производительности.</string>
@@ -1993,7 +1993,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Введите корректный URL HTTP или HTTPS</string>
     <string name="settings_patches_attribution_title">Авторы патчей</string>
-    <string name="settings_patches_attribution">Патчи созданы сообществом и остаются собственностью их авторов. EmuCoreR только загружает их из публичного источника, не включает в приложение и не претендует на них.</string>
+    <string name="settings_patches_attribution">Патчи созданы сообществом и остаются собственностью их авторов. DukeStation только загружает их из публичного источника, не включает в приложение и не претендует на них.</string>
     <string name="settings_patches_source_link">Открыть страницу источника патчей</string>
     <string name="achievements_title">Достижения</string>
     <string name="achievements_game_loaded">Достижения активны: %1$s</string>

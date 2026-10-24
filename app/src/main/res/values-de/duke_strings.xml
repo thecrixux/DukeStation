@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">Leistungsstarke</string>
+    <string name="duke_library_highlight">Spiele</string>
+    <string name="duke_choose_folder">Ordner auf dem Gerät wählen</string>
+    <string name="duke_choose_folder_description">Wähle einen lokalen Datenordner. Android kann Dateizugriff anfordern. Vorhandene Dateien werden nicht automatisch verschoben.</string>
+    <string name="duke_storage_description">Wähle einen lokalen Datenordner. Android kann Dateizugriff anfordern. Vorhandene Dateien werden nicht automatisch verschoben.</string>
+</resources>

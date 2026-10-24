@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">Poderosa</string>
+    <string name="duke_library_highlight">Jogos</string>
+    <string name="duke_choose_folder">Escolher uma pasta do telefone</string>
+    <string name="duke_choose_folder_description">Escolha uma pasta local para os dados. O Android pode pedir acesso aos ficheiros. Os ficheiros existentes não são movidos automaticamente.</string>
+    <string name="duke_storage_description">Escolha uma pasta local para os dados. O Android pode pedir acesso aos ficheiros. Os ficheiros existentes não são movidos automaticamente.</string>
+</resources>

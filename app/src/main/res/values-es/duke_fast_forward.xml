@@ -1,0 +1,10 @@
+<resources>
+    <string name="duke_ff_title">Avance rápido ⏩</string>
+    <string name="duke_ff_show">Mostrar botón de avance rápido</string>
+    <string name="duke_ff_position">Muévelo y cambia su tamaño en el editor de botones personalizados. Los controles táctiles deben estar visibles.</string>
+    <string name="duke_ff_toggle">Pulsar para activar/desactivar</string>
+    <string name="duke_ff_toggle_help">Pulsa una vez para activar y otra para desactivar.</string>
+    <string name="duke_ff_hold_help">Mantén pulsado para acelerar; suelta para volver a la velocidad normal.</string>
+    <string name="duke_ff_speed">Velocidad de avance rápido</string>
+    <string name="duke_ff_audio">La velocidad alcanzada depende del dispositivo. El audio se silencia durante el avance rápido.</string>
+</resources>

@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">Otwórz plik CUE, gdy jest obecny, aby ścieżki danych i audio zachowały prawidłową kolejność. Samodzielny BIN jest obsługiwany dla zrzutów jednopasmowych.</string>
     <string name="formats_ps1_planned_title">Playlisty wielodyskowych</string>
     <string name="formats_ps1_planned_body">Dolaczone jadro odczytuje playlisty M3U. Biblioteka indeksuje tylko obrazy dyskow, wiec otworz M3U bezposrednio z wyboru dysku.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <!-- Navigation -->
     <string name="shell_library">Biblioteka</string>
@@ -655,7 +655,7 @@
     <string name="settings_fps_overlay_mode_detailed">Złożona wydajnościowa i szczegółowa zakładka statystyk sprzętowych</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_page_1_title">Witamy w EmuCoreR</string>
+    <string name="onboarding_page_1_title">Witamy w DukeStation</string>
     <string name="onboarding_page_1_subtitle">Twoja podręczna biblioteka PlayStation ze świetnym launcherem wspierana szybką konfiguracją, lekkim interfejsem optymalnie radząca sobie na każdym formacie powłok graficznych interfejsu urządzenia Android.</string>
     <string name="onboarding_page_2_title">Skalowana siła renderowania / Emulacja 3D</string>
     <string name="onboarding_page_2_subtitle">Spróbuj pograć i włączyć tytuły gier Twojego dzieciństwa wykorzystując olbrzymie zasoby renderowania, modyfikowania rozdzielczości wspieranej wybitną jakością pracy JIT w połączeniu ze wsparciem silnika kontrolera zewnętrznego załączającego grę.</string>
@@ -2010,7 +2010,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Podaj prawidłowy URL HTTP lub HTTPS</string>
     <string name="settings_patches_attribution_title">Autorzy patchy</string>
-    <string name="settings_patches_attribution">Patche są tworzone przez społeczność i pozostają własnością ich autorów. EmuCoreR jedynie pobiera je z publicznego źródła i nie dołącza ich ani nie rości sobie do nich praw.</string>
+    <string name="settings_patches_attribution">Patche są tworzone przez społeczność i pozostają własnością ich autorów. DukeStation jedynie pobiera je z publicznego źródła i nie dołącza ich ani nie rości sobie do nich praw.</string>
     <string name="settings_patches_source_link">Otwórz stronę źródła patchy</string>
     <string name="achievements_title">Osiągnięcia</string>
     <string name="achievements_game_loaded">Osiągnięcia aktywne: %1$s</string>

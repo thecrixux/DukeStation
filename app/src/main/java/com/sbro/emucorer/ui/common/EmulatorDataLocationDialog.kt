@@ -37,8 +37,51 @@ fun EmulatorDataLocationDialog(
     selectedLocation: EmulatorDataLocation?,
     sdCardAvailable: Boolean,
     onSelect: (EmulatorDataLocation) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onCustomPath: (String) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun showError() = android.widget.Toast.makeText(context,
+        R.string.emulator_data_location_error, android.widget.Toast.LENGTH_LONG).show()
+    val folderPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            val path = runCatching {
+                require(uri.authority == "com.android.externalstorage.documents")
+                val id = android.provider.DocumentsContract.getTreeDocumentId(uri)
+                val pieces = id.split(":", limit = 2)
+                val volume = if (pieces[0].equals("primary", ignoreCase = true))
+                    android.os.Environment.getExternalStorageDirectory()
+                else java.io.File("/storage", pieces[0])
+                val root = volume.canonicalFile
+                val chosen = java.io.File(root, pieces.getOrElse(1) { "" }).canonicalFile
+                require(chosen.path == root.path || chosen.path.startsWith(root.path + "/"))
+                chosen.path
+            }.getOrNull()
+            if (path == null) showError() else onCustomPath(path)
+        }
+    }
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (android.os.Build.VERSION.SDK_INT >= 30 && android.os.Environment.isExternalStorageManager())
+            folderPicker.launch(null)
+        else showError()
+    }
+    val legacyPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) folderPicker.launch(null) else showError() }
+    fun chooseFolder() {
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            if (android.os.Environment.isExternalStorageManager()) folderPicker.launch(null)
+            else runCatching {
+                permissionLauncher.launch(android.content.Intent(
+                    android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    android.net.Uri.parse("package:" + context.packageName)))
+            }.onFailure { showError() }
+        } else legacyPermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
     SettingsStyledDialog(
         title = stringResource(R.string.emulator_data_location_title),
         eyebrow = stringResource(R.string.settings_emulator_data_path),
@@ -46,7 +89,7 @@ fun EmulatorDataLocationDialog(
         onDismissRequest = onDismiss,
     ) {
         Text(
-            text = stringResource(R.string.emulator_data_location_description),
+            text = stringResource(R.string.duke_storage_description),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyLarge
         )
@@ -60,15 +103,11 @@ fun EmulatorDataLocationDialog(
         )
         EmulatorDataLocationOption(
             icon = Icons.Rounded.SdStorage,
-            title = stringResource(R.string.emulator_data_location_sd_card),
-            description = if (sdCardAvailable) {
-                stringResource(R.string.emulator_data_location_sd_card_description)
-            } else {
-                stringResource(R.string.emulator_data_location_sd_card_unavailable)
-            },
-            selected = selectedLocation == EmulatorDataLocation.SD_CARD,
-            enabled = sdCardAvailable,
-            onClick = { onSelect(EmulatorDataLocation.SD_CARD) }
+            title = stringResource(R.string.duke_choose_folder),
+            description = stringResource(R.string.duke_choose_folder_description),
+            selected = selectedLocation == null,
+            enabled = true,
+            onClick = { chooseFolder() }
         )
         val cancelInteractionSource = remember { MutableInteractionSource() }
         val cancelShape = neonShape(18.dp)

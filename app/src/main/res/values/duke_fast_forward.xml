@@ -1,0 +1,10 @@
+<resources>
+    <string name="duke_ff_title">Fast forward ⏩</string>
+    <string name="duke_ff_show">Show fast-forward button</string>
+    <string name="duke_ff_position">Move and resize it in the custom button editor. Touch controls must be visible.</string>
+    <string name="duke_ff_toggle">Tap to toggle</string>
+    <string name="duke_ff_toggle_help">Tap once to activate; tap again to stop.</string>
+    <string name="duke_ff_hold_help">Hold the button to accelerate; release to return to normal.</string>
+    <string name="duke_ff_speed">Fast-forward speed</string>
+    <string name="duke_ff_audio">Target speed depends on device performance. Audio is muted during fast forward.</string>
+</resources>

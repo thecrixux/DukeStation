@@ -52,6 +52,19 @@ object NativeApp {
 
     @JvmStatic fun initialize(path: String, apiVer: Int) = Unit
 
+    internal fun customDataRootPath(): String? = dataRootOverride
+
+    @JvmStatic fun withStoppedPs1(action: Runnable): Boolean = CoreRuntime.withStoppedPs1(action)
+
+    @JvmStatic fun pocketCardRoots(context: Context): Array<String> {
+        val custom = dataRootOverride?.takeIf { it.isNotBlank() }
+        val nativeSave = if (custom == null) File(context.filesDir, "swanstation/save")
+            else File(custom, "save")
+        val frontendRoot = custom?.let(::File) ?: (context.getExternalFilesDir(null) ?: context.filesDir)
+        return arrayOf(nativeSave.absolutePath, File(frontendRoot, "memcards").absolutePath)
+    }
+
+
     @JvmStatic fun reloadDataRoot(path: String) { dataRootOverride = path.takeIf(String::isNotBlank) }
     @JvmStatic fun setSaveStateIdentityPath(path: String?) {
         saveStateIdentityPath = path?.takeIf(String::isNotBlank)

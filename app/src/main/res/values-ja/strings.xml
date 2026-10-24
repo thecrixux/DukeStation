@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">CUEファイルがある場合はそれを開いてください。データトラックとオーディオトラックの正しい順序が保たれます。シングルトラックのダンプでは単体のBINもサポートされます。</string>
     <string name="formats_ps1_planned_title">マルチディスク プレイリスト</string>
     <string name="formats_ps1_planned_body">同梱のコアはM3Uプレイリストを読み込めます。ライブラリはディスクイメージのみを一覧表示するため、M3Uはディスク選択から直接開いてください。</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">ライブラリ</string>
     <string name="shell_catalog_search">PS1検索</string>
@@ -443,7 +443,7 @@
     <string name="settings_fps_overlay_mode_simple">シンプル FPS</string>
     <string name="settings_fps_overlay_mode_detailed">統計情報</string>
 
-    <string name="onboarding_page_1_title">EmuCoreR へようこそ</string>
+    <string name="onboarding_page_1_title">DukeStation へようこそ</string>
     <string name="onboarding_page_1_subtitle">PlayStationライブラリとランチャー。すばやいセットアップ、分かりやすいナビゲーション、あらゆる画面での快適な操作のために設計されています。</string>
     <string name="onboarding_page_2_title">強力なエミュレーション</string>
     <string name="onboarding_page_2_subtitle">高度なグラフィックスオプション、カスタマイズ可能なコントロール、およびパフォーマンスの最適化により、お気に入りのPS1ゲームを体験してください。</string>
@@ -1988,7 +1988,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">有効な HTTP または HTTPS URL を入力してください</string>
     <string name="settings_patches_attribution_title">パッチ作者</string>
-    <string name="settings_patches_attribution">パッチはコミュニティによって作成され、その作者に帰属します。EmuCoreR は公開ソースからダウンロードするだけで、同梱や所有権の主張は行いません。</string>
+    <string name="settings_patches_attribution">パッチはコミュニティによって作成され、その作者に帰属します。DukeStation は公開ソースからダウンロードするだけで、同梱や所有権の主張は行いません。</string>
     <string name="settings_patches_source_link">パッチソースのページを開く</string>
     <string name="achievements_title">実績</string>
     <string name="achievements_game_loaded">実績トラッキング中: %1$s</string>

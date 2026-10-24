@@ -3,7 +3,7 @@ package com.sbro.emucorer.core
 import kotlin.math.roundToInt
 
 const val UPSCALE_MIN = 1.0f
-const val UPSCALE_MAX = 16.0f
+const val UPSCALE_MAX = 32.0f
 
 private const val UPSCALE_STEP = 1.0f
 private const val UPSCALE_NATIVE_MULTIPLIER = 1.0f
@@ -14,7 +14,8 @@ fun normalizeUpscale(value: Float, maxMultiplier: Int = UPSCALE_MAX_MULTIPLIER.r
         .coerceAtMost(UPSCALE_MAX_MULTIPLIER.roundToInt())
         .toFloat()
     val stepped = (value / UPSCALE_STEP).roundToInt() * UPSCALE_STEP
-    return stepped.coerceIn(UPSCALE_NATIVE_MULTIPLIER, max)
+    return ((1..16).toList() + listOf(18, 20, 24, 28, 32))
+        .filter { it <= max }.minByOrNull { kotlin.math.abs(it - stepped) }?.toFloat() ?: 1f
 }
 
 fun upscaleMultiplierValue(value: Float): Int = upscaleMultiplierKey(normalizeUpscale(value))
@@ -36,7 +37,7 @@ fun formatUpscaleLabel(value: Float, nativeLabel: String): String {
  */
 fun buildUpscaleOptions(nativeLabel: String, maxMultiplier: Int = UPSCALE_MAX_MULTIPLIER.roundToInt()): List<Pair<Int, String>> {
     val max = maxMultiplier.coerceIn(UPSCALE_NATIVE_MULTIPLIER.roundToInt(), UPSCALE_MAX_MULTIPLIER.roundToInt())
-    return (1..max).map { multiplier ->
+    return ((1..16).toList() + listOf(18, 20, 24, 28, 32)).filter { it <= max }.map { multiplier ->
         upscaleMultiplierKey(multiplier.toFloat()) to formatUpscaleLabel(multiplier.toFloat(), nativeLabel)
     }
 }

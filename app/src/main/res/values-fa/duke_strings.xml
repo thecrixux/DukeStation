@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="duke_emulation_highlight">قدرتمند</string>
+    <string name="duke_library_highlight">بازی‌های</string>
+    <string name="duke_choose_folder">انتخاب پوشه در تلفن</string>
+    <string name="duke_choose_folder_description">یک پوشه محلی برای داده‌ها انتخاب کنید. Android ممکن است دسترسی به فایل‌ها را درخواست کند. فایل‌های موجود خودکار منتقل نمی‌شوند.</string>
+    <string name="duke_storage_description">یک پوشه محلی برای داده‌ها انتخاب کنید. Android ممکن است دسترسی به فایل‌ها را درخواست کند. فایل‌های موجود خودکار منتقل نمی‌شوند.</string>
+</resources>

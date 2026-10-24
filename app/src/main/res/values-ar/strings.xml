@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">افتح ملف CUE عند وجوده حتى تحافظ مسارات البيانات والصوت على ترتيبها الصحيح. يُدعم ملف BIN مستقل للنسخ ذات المسار الواحد.</string>
     <string name="formats_ps1_planned_title">قوائم التشغيل متعددة الأقراص</string>
     <string name="formats_ps1_planned_body">يقرأ النواة المضمنة قوائم تشغيل M3U. تفهرس المكتبة صور الأقراص فقط، لذا افتح ملف M3U مباشرة من منتقي الأقراص.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">المكتبة</string>
     <string name="shell_catalog_search">بحث PS1</string>
@@ -443,7 +443,7 @@
     <string name="settings_fps_overlay_mode_simple">FPS بسيط</string>
     <string name="settings_fps_overlay_mode_detailed">إحصائيات</string>
 
-    <string name="onboarding_page_1_title">مرحبًا بك في EmuCoreR</string>
+    <string name="onboarding_page_1_title">مرحبًا بك في DukeStation</string>
     <string name="onboarding_page_1_subtitle">مكتبة ومشغّل PlayStation، مصممان للإعداد السريع والتنقل الواضح وتجربة سلسة على أي شاشة.</string>
     <string name="onboarding_page_2_title">محاكاة قوية</string>
     <string name="onboarding_page_2_subtitle">جرب ألعاب PS1 المفضلة لديك مع خيارات رسومات متقدمة، وعناصر تحكم قابلة للتخصيص، وتحسينات في الأداء.</string>
@@ -1997,7 +1997,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">أدخل رابط HTTP أو HTTPS صالحاً</string>
     <string name="settings_patches_attribution_title">مؤلفو الترقيعات</string>
-    <string name="settings_patches_attribution">الترقيعات من إنشاء المجتمع وتبقى ملكاً لمؤلفيها. يقوم EmuCoreR بتنزيلها من المصدر العام فقط ولا يضمّنها ولا يدّعي ملكيتها.</string>
+    <string name="settings_patches_attribution">الترقيعات من إنشاء المجتمع وتبقى ملكاً لمؤلفيها. يقوم DukeStation بتنزيلها من المصدر العام فقط ولا يضمّنها ولا يدّعي ملكيتها.</string>
     <string name="settings_patches_source_link">فتح صفحة مصدر الترقيعات</string>
     <string name="achievements_title">الإنجازات</string>
     <string name="achievements_game_loaded">الإنجازات مفعّلة: %1$s</string>

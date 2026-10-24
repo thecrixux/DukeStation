@@ -16,6 +16,12 @@
 // the core transparently falls back to its software renderer.
 
 #include <jni.h>
+#include <deque>
+#include <chrono>
+#include <signal.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <dlfcn.h>
 
 #include <android/log.h>
 #include <android/native_window.h>
@@ -57,6 +63,45 @@ namespace vulkan = emucorer::vulkan;
 // ---------------------------------------------------------------------------
 // Core option keys understood by the SwanStation libretro core.
 // ---------------------------------------------------------------------------
+
+// Read-only snapshots: never replace handlers or change memory protection.
+static void GooseDiagnosticSnapshot(const char* stage) {
+    sigset_t mask;
+    const int mask_result = pthread_sigmask(SIG_SETMASK, nullptr, &mask);
+    for (int number : {SIGSEGV, SIGBUS}) {
+        struct sigaction action{};
+        if (sigaction(number, nullptr, &action) != 0) {
+            LOGW("GOOSE-DIAG %s signal=%d query failed", stage, number);
+            continue;
+        }
+        void* handler = (action.sa_flags & SA_SIGINFO)
+            ? reinterpret_cast<void*>(action.sa_sigaction)
+            : reinterpret_cast<void*>(action.sa_handler);
+        Dl_info info{};
+        dladdr(handler, &info);
+        LOGI("GOOSE-DIAG %s tid=%d signal=%d handler=%p library=%s symbol=%s flags=0x%x blocked=%d page=%ld",
+             stage, static_cast<int>(gettid()), number, handler,
+             info.dli_fname ? info.dli_fname : "unknown",
+             info.dli_sname ? info.dli_sname : "unknown",
+             static_cast<unsigned>(action.sa_flags),
+             mask_result == 0 ? sigismember(&mask, number) : -1,
+             sysconf(_SC_PAGESIZE));
+    }
+}
+
+// Messages are copied on receipt; the core owns the original pointers.
+struct GooseNotice { std::string text; unsigned duration; std::chrono::steady_clock::time_point received; };
+static std::mutex goose_notice_mutex;
+static std::deque<GooseNotice> goose_notices;
+static void QueueGooseNotice(const char* text, unsigned duration) {
+    if (!text || !*text) return;
+    std::lock_guard<std::mutex> lock(goose_notice_mutex);
+    if (goose_notices.size() >= 32) goose_notices.pop_front();
+    goose_notices.push_back({std::string(text).substr(0, 4096),
+        std::clamp(duration, 500u, 15000u), std::chrono::steady_clock::now()});
+    LOGI("GOOSE-NOTICE %s", text);
+}
+
 namespace option_key {
 constexpr const char* kRenderer = "swanstation_GPU_Renderer";
 constexpr const char* kAspectRatio = "swanstation_Display_AspectRatio";
@@ -736,115 +781,59 @@ bool CreatePresentFramebuffer() {
     return true;
 }
 
-void PresentHardwareFrame() {
-    if (g_gl.fbo == 0) return;
+// Present only the dimensions supplied by this video callback. Preserve the
+// shared context state so the core's GL state cache remains valid.
+void PresentHardwareFrame(unsigned width, unsigned height) {
+    if (!g_gl.fbo || !width || !height) return;
     ANativeWindow* window = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_frontend.mutex);
         window = g_frontend.window;
+        if (window) ANativeWindow_acquire(window);
     }
-    if (window == nullptr) return;
-    const int win_width = ANativeWindow_getWidth(window);
-    const int win_height = ANativeWindow_getHeight(window);
-    if (win_width <= 0 || win_height <= 0) return;
-
+    if (!window) return;
+    const int ww = ANativeWindow_getWidth(window);
+    const int wh = ANativeWindow_getHeight(window);
+    ANativeWindow_release(window);
+    if (ww <= 0 || wh <= 0) return;
+    const int sw = std::min(static_cast<int>(width), g_gl.fbo_width);
+    const int sh = std::min(static_cast<int>(height), g_gl.fbo_height);
+    if (sw <= 0 || sh <= 0) return;
     retro_system_av_info info{};
     retro_get_system_av_info(&info);
-    GLsizei src_width = static_cast<GLsizei>(info.geometry.base_width > 0 ? info.geometry.base_width : g_gl.fbo_width);
-    GLsizei src_height = static_cast<GLsizei>(info.geometry.base_height > 0 ? info.geometry.base_height : g_gl.fbo_height);
-    if (src_width > g_gl.fbo_width) src_width = g_gl.fbo_width;
-    if (src_height > g_gl.fbo_height) src_height = g_gl.fbo_height;
-
-    // Crop trims source pixels before scaling. The core puts the active region
-    // in the bottom-left of the padded FBO, so the user-facing "top" crop trims
-    // the high-V edge and "bottom" trims the low-V edge.
-    const DisplayCropRect crop = ClampDisplayCrop(
-        CurrentDisplayCrop(), static_cast<unsigned>(src_width), static_cast<unsigned>(src_height));
-    const bool crop_active = IsCropActive(crop);
-    const int cropped_width = src_width - crop.left - crop.right;
-    const int cropped_height = src_height - crop.top - crop.bottom;
-    const int src_x0 = crop.left;
-    const int src_y0 = crop.bottom;
-    const int src_x1 = src_width - crop.right;
-    const int src_y1 = src_height - crop.top;
-
-    double display_aspect = info.geometry.aspect_ratio;
-    if (crop_active && cropped_width > 0 && cropped_height > 0) {
-        // The core reports the aspect of the full active region; recompute it
-        // for the trimmed region so the fit stays undistorted.
-        display_aspect *= (static_cast<double>(cropped_width) / static_cast<double>(src_width)) /
-                          (static_cast<double>(cropped_height) / static_cast<double>(src_height));
-    }
-
+    const DisplayCropRect crop = ClampDisplayCrop(CurrentDisplayCrop(), sw, sh);
+    double aspect = info.geometry.aspect_ratio;
+    if (aspect <= 0.0) aspect = static_cast<double>(sw) / sh;
+    aspect *= (static_cast<double>(sw - crop.left - crop.right) / sw) /
+              (static_cast<double>(sh - crop.top - crop.bottom) / sh);
     const PresentRect dst = AspectRatioStretchRequested()
-        ? PresentRect{0, 0, win_width, win_height}
-        : FitDisplayRect(win_width, win_height, display_aspect);
-
-#if defined(EMUCORER_HAVE_LIBRASHADER)
-    if (emucorer::shader_chain::IsEnabled() && !emucorer::shader_chain::PresetPath().empty() &&
-        EnsureGlShaderChain() && EnsureGlShaderChainInput(cropped_width, cropped_height) &&
-        EnsureGlShaderChainTarget(dst.width, dst.height)) {
-        // The core renders the active display region into the bottom-left of a
-        // larger padded FBO, so crop that region into the exact-size chain input
-        // before librashader sees it.
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fbo);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_gl_chain.input_fbo);
-        glDisable(GL_SCISSOR_TEST);
-        glBlitFramebuffer(src_x0, src_y0, src_x1, src_y1, 0, 0, cropped_width, cropped_height,
-                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        const libra_image_gl_t in = {g_gl_chain.input_texture, GL_RGBA8,
-                                     static_cast<uint32_t>(cropped_width),
-                                     static_cast<uint32_t>(cropped_height)};
-        const libra_image_gl_t out = {g_gl_chain.target_texture, GL_RGBA8,
-                                      static_cast<uint32_t>(g_gl_chain.target_width),
-                                      static_cast<uint32_t>(g_gl_chain.target_height)};
-        const libra_viewport_t viewport = {0.0f, 0.0f, static_cast<uint32_t>(g_gl_chain.target_width),
-                                           static_cast<uint32_t>(g_gl_chain.target_height)};
-        libra_gl_filter_chain_t chain = static_cast<libra_gl_filter_chain_t>(g_gl_chain.chain);
-        libra_error_t chain_error =
-            libra_gl_filter_chain_frame(&chain, g_gl_chain.frame_count, in, out, &viewport, nullptr, nullptr);
-        RestoreGlStateAfterShaderChain();
-        if (!chain_error) {
-            ++g_gl_chain.frame_count;
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl_chain.target_fbo);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            glViewport(0, 0, win_width, win_height);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glBlitFramebuffer(0, 0, g_gl_chain.target_width, g_gl_chain.target_height,
-                              dst.x, dst.y, dst.x + dst.width, dst.y + dst.height,
-                              GL_COLOR_BUFFER_BIT, GL_LINEAR);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            return;
-        }
-        ReportGlShaderChainError("frame", chain_error);
-        g_gl_chain.failed = true;
-    }
-#endif
-
-    int effect = g_shader_effect.load(std::memory_order_relaxed);
-    if (effect == 0) {
-        effect = 5; // Fallback to Bilinear shader quad for reliable linear upscaling
-    }
-    if (effect != 0 && EnsureGlEffectProgram()) {
-        PresentHardwareFrameEffect(effect, win_width, win_height, dst, src_x0, src_y0, cropped_width,
-                                   cropped_height);
-        return;
-    }
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fbo);
+        ? PresentRect{0, 0, ww, wh} : FitDisplayRect(ww, wh, aspect);
+    GLint read_fbo = 0, draw_fbo = 0;
+    GLfloat clear_color[4];
+    GLboolean color_mask[4];
+    const GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fbo);
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbo);
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, clear_color);
+    glGetBooleanv(GL_COLOR_WRITEMASK, color_mask);
+    glDisable(GL_SCISSOR_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glViewport(0, 0, win_width, win_height);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
-    // Linear filtering keeps unevenly scaled text from shimmering when the
-    // native PS1 resolution is upscaled to a non-integer screen size.
-    glBlitFramebuffer(src_x0, src_y0, src_x1, src_y1,
-                      dst.x, dst.y, dst.x + dst.width, dst.y + dst.height,
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_gl.fbo);
+    const bool bottom_left = g_gl.callback && g_gl.callback->bottom_left_origin;
+    const int y0 = bottom_left ? crop.bottom : sh - crop.bottom;
+    const int y1 = bottom_left ? sh - crop.top : crop.top;
+    const int dy = wh - dst.y - dst.height;
+    glBlitFramebuffer(crop.left, y0, sw - crop.right, y1,
+                      dst.x, dy, dst.x + dst.width, dy + dst.height,
                       GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(read_fbo));
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(draw_fbo));
+    glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+    glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
+    if (scissor) glEnable(GL_SCISSOR_TEST);
 }
 
 bool CreateEglContext(ANativeWindow* window) {
@@ -1045,11 +1034,87 @@ bool HandleHardwareRender(void* data) {
 
     // The frame worker has not started yet at this point (SET_HW_RENDER fires
     // inside retro_load_game), so publishing here is safe.
-    g_gl.callback = cb;
+    static retro_hw_render_callback owned_callback{};
+    owned_callback = *cb;
+    g_gl.callback = &owned_callback;
     g_gl.pending = true;
     g_gl.failed = false;
     LOGI("Accepted OpenGL ES hardware renderer request");
     return true;
+}
+
+// GooseDroid boot probe: definitions and defaults come from the loaded core.
+struct GooseOption { std::string fallback; std::vector<std::string> values; };
+std::unordered_map<std::string, GooseOption> goose_options;
+const std::unordered_map<std::string, std::string> goose_legacy_keys = {
+    {"goosestation_renderer", "swanstation_GPU_Renderer"},
+    {"goosestation_resolution_scale", "swanstation_GPU_ResolutionScale"},
+    {"goosestation_aspect_ratio", "swanstation_Display_AspectRatio"},
+    {"goosestation_bios_path_ntsc_j", "swanstation_BIOS_PathNTSCJ"},
+    {"goosestation_bios_path_ntsc_u", "swanstation_BIOS_PathNTSCU"},
+    {"goosestation_bios_path_pal", "swanstation_BIOS_PathPAL"},
+    {"goosestation_bios_fast_boot", "swanstation_BIOS_PatchFastBoot"},
+    {"goosestation_widescreen_hack", "swanstation_GPU_WidescreenHack"},
+    {"goosestation_texture_filter", "swanstation_GPU_TextureFilter"},
+    {"goosestation_gpu_software_readbacks", "swanstation_GPU_UseSoftwareRendererForReadbacks"},
+    {"goosestation_crop_mode", "swanstation_Display_CropMode"},
+    {"goosestation_region", "swanstation_Console_Region"},
+    {"goosestation_cpu_execution_mode", "swanstation_CPU_ExecutionMode"},
+    {"goosestation_cpu_fastmem_mode", "swanstation_CPU_FastmemMode"},
+    {"goosestation_cpu_recompiler_icache", "swanstation_CPU_RecompilerICache"},
+    {"goosestation_cdrom_region_check", "swanstation_CDROM_RegionCheck"},
+    {"goosestation_cdrom_readahead_sectors", "swanstation_CDROM_ReadaheadSectors"},
+    {"goosestation_cdrom_mute_cd_audio", "swanstation_CDROM_MuteCDAudio"},
+    {"goosestation_pgxp_enable", "swanstation_GPU_PGXPEnable"},
+    {"goosestation_pgxp_vertex_cache", "swanstation_GPU_PGXPVertexCache"},
+    {"goosestation_pgxp_preserve_proj_fp", "swanstation_GPU_PGXPPreserveProjFP"},
+    {"goosestation_pgxp_tolerance", "swanstation_GPU_PGXPTolerance"},
+    {"goosestation_pgxp_disable_2d", "swanstation_GPU_PGXPDisable2D"},
+    {"goosestation_pgxp_transparent_depth", "swanstation_GPU_PGXPTransparentDepth"},
+    {"goosestation_pgxp_depth_clear_threshold", "swanstation_GPU_PGXPDepthClearThreshold"},
+    {"goosestation_pgxp_culling", "swanstation_GPU_PGXPCulling"},
+    {"goosestation_pgxp_texture_correction", "swanstation_GPU_PGXPTextureCorrection"},
+    {"goosestation_pgxp_color_correction", "swanstation_GPU_PGXPColorCorrection"},
+    {"goosestation_pgxp_depth_buffer", "swanstation_GPU_PGXPDepthBuffer"},
+    {"goosestation_pgxp_cpu", "swanstation_GPU_PGXPCPU"},
+    {"goosestation_apply_compatibility_settings", "swanstation_Main_ApplyGameSettings"},
+    {"goosestation_multitap", "swanstation_ControllerPorts_MultitapMode"},
+};
+template<class Definition> void RegisterGooseOptions(const Definition* defs) {
+    if (!defs) return;
+    std::lock_guard<std::mutex> lock(g_frontend.mutex);
+    for (auto* d = defs; d->key; ++d) {
+        GooseOption opt;
+        for (const auto& v : d->values) {
+            if (!v.value) break;
+            opt.values.emplace_back(v.value);
+        }
+        opt.fallback = d->default_value ? d->default_value :
+            (opt.values.empty() ? "" : opt.values.front());
+        goose_options[d->key] = std::move(opt);
+    }
+}
+// Caller holds g_frontend.mutex. Returned strings are stored, never temporaries.
+const char* GooseOptionValue(const char* key) {
+    auto def = goose_options.find(key);
+    auto legacy = goose_legacy_keys.find(key);
+    auto val = g_frontend.options.find(legacy == goose_legacy_keys.end() ? key : legacy->second);
+    if (def == goose_options.end()) {
+        return val == g_frontend.options.end() ? nullptr : val->second.c_str();
+    }
+    if (val != g_frontend.options.end()) {
+        std::string candidate = val->second;
+        for (const auto& allowed : def->second.values) {
+            if (allowed == candidate ||
+                (candidate == "true" && (allowed == "enabled" || allowed == "Enabled")) ||
+                (candidate == "false" && (allowed == "disabled" || allowed == "Disabled")))
+                return allowed.c_str();
+        }
+        // BIOS options may accept a filename not present in their enumerated list.
+        if (std::string(key).find("goosestation_bios_path_") == 0)
+            return val->second.c_str();
+    }
+    return def->second.fallback.c_str();
 }
 
 bool EnvironmentCallback(unsigned cmd, void* data) {
@@ -1070,16 +1135,41 @@ bool EnvironmentCallback(unsigned cmd, void* data) {
             auto* var = static_cast<retro_variable*>(data);
             if (var == nullptr || var->key == nullptr) return false;
             std::lock_guard<std::mutex> lock(g_frontend.mutex);
-            const auto it = g_frontend.options.find(var->key);
-            if (it == g_frontend.options.end()) return false;
-            var->value = it->second.c_str();
-            return true;
+            var->value = GooseOptionValue(var->key);
+            static std::unordered_map<std::string, std::string> diagnostic_values;
+            const std::string effective = var->value ? var->value : "<unset>";
+            const auto previous = diagnostic_values.find(var->key);
+            if (previous == diagnostic_values.end() || previous->second != effective) {
+                LOGI("GOOSE-OPTION %s=%s", var->key, effective.c_str());
+                diagnostic_values[var->key] = effective;
+            }
+            return var->value != nullptr;
         }
 
-        case RETRO_ENVIRONMENT_SET_VARIABLES:
         case RETRO_ENVIRONMENT_SET_CORE_OPTIONS:
-        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
-        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL:
+            RegisterGooseOptions(static_cast<const retro_core_option_definition*>(data));
+            return true;
+        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL: {
+            auto* opts = static_cast<const retro_core_options_intl*>(data);
+            if (!opts) return false;
+            RegisterGooseOptions(opts->us);
+            return true;
+        }
+        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2: {
+            auto* opts = static_cast<const retro_core_options_v2*>(data);
+            if (!opts) return false;
+            RegisterGooseOptions(opts->definitions);
+            return true;
+        }
+        case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL: {
+            auto* opts = static_cast<const retro_core_options_v2_intl*>(data);
+            if (!opts || !opts->us) return false;
+            RegisterGooseOptions(opts->us->definitions);
+            return true;
+        }
+        case RETRO_ENVIRONMENT_SET_VARIABLES:
+            return false;
+
         case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS:
         case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO:
         case RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME:
@@ -1203,9 +1293,20 @@ bool EnvironmentCallback(unsigned cmd, void* data) {
             ResizePresentFramebufferIfCurrent();
             return true;
 
-        case RETRO_ENVIRONMENT_SET_MESSAGE:
-        case RETRO_ENVIRONMENT_SET_MESSAGE_EXT:
+        case RETRO_ENVIRONMENT_SET_MESSAGE: {
+            if (!data) return false;
+            const auto* msg = static_cast<const retro_message*>(data);
+            QueueGooseNotice(msg->msg, static_cast<unsigned>(std::min<uint64_t>(15000, static_cast<uint64_t>(msg->frames) * 1000 / 60)));
             return true;
+        }
+        case RETRO_ENVIRONMENT_SET_MESSAGE_EXT: {
+            if (!data) return false;
+            const auto* msg = static_cast<const retro_message_ext*>(data);
+            // LOG-only messages are not intended for the on-screen display.
+            if (msg->target != RETRO_MESSAGE_TARGET_LOG)
+                QueueGooseNotice(msg->msg, msg->duration);
+            return true;
+        }
 
         case RETRO_ENVIRONMENT_GET_VFS_INTERFACE:
         case RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION:
@@ -1364,10 +1465,13 @@ void PresentSoftwareFrame(const void* data, unsigned width, unsigned height, siz
     ANativeWindow_unlockAndPost(window);
 }
 
+static std::atomic<int> g_fast_forward_multiplier{1};
+
 void RetroVideoRefresh(const void* data, unsigned width, unsigned height, size_t pitch) {
     // Optional frontend frame skip: after presenting one frame, drop the next
     // N refresh callbacks so the host does less presentation work per second.
-    const int frame_skip = g_frontend.frame_skip.load(std::memory_order_relaxed);
+    const int frame_skip = std::max(g_frontend.frame_skip.load(std::memory_order_relaxed),
+                                    g_fast_forward_multiplier.load(std::memory_order_relaxed) - 1);
     if (frame_skip > 0)
     {
         static thread_local int skip_counter = 0;
@@ -1404,7 +1508,7 @@ void RetroVideoRefresh(const void* data, unsigned width, unsigned height, size_t
         }
         // Hardware path: the core rendered into the frontend framebuffer; blit
         // it to the window, then present.
-        PresentHardwareFrame();
+        PresentHardwareFrame(width, height);
         if (g_gl.ready && g_gl.display != EGL_NO_DISPLAY && g_gl.surface != EGL_NO_SURFACE)
             eglSwapBuffers(g_gl.display, g_gl.surface);
         return;
@@ -1433,6 +1537,7 @@ void AudioRingEnsureCapacity(size_t additional_frames) {
 }
 
 size_t RetroAudioSampleBatch(const int16_t* data, size_t frames) {
+    if (g_fast_forward_multiplier.load(std::memory_order_relaxed) > 1) return frames;
     if (data == nullptr || frames == 0) return frames;
     std::lock_guard<std::mutex> lock(g_frontend.audio_mutex);
     AudioRingEnsureCapacity(frames);
@@ -1600,20 +1705,21 @@ std::string RendererOptionForInteger(int renderer) {
 }  // namespace
 
 extern "C" {
+JNIEXPORT jstring JNICALL
+Java_com_sbro_emucorer_core_NativeCoreBridge_pollCoreNotice(JNIEnv* env, jobject) {
+    std::lock_guard<std::mutex> lock(goose_notice_mutex);
+    const auto now = std::chrono::steady_clock::now();
+    while (!goose_notices.empty()) {
+        auto notice = std::move(goose_notices.front());
+        goose_notices.pop_front();
+        const auto age = std::chrono::duration_cast<std::chrono::milliseconds>(now - notice.received).count();
+        if (age >= notice.duration) continue;
+        const std::string result = std::to_string(notice.duration - age) + "\n" + notice.text;
+        return env->NewStringUTF(result.c_str());
+    }
+    return nullptr;
+}
 
-// Implemented by the bundled SwanStation core (libretro_host_interface.cpp);
-// lets the app bind explicit memory-card images to the emulated slots.
-extern void EmuCoreRSetMemoryCardPathOverride(unsigned slot, const char* path);
-
-// Implemented by the core: overrides the replacement-texture base directory.
-extern void EmuCoreRSetTextureReplacementsPathOverride(const char* path);
-
-// Implemented by the core: reports whether a disc image is mounted.
-extern bool EmuCoreRHasDiscMedia();
-
-// Implemented by the core: reads the game serial from a disc image.
-extern const char* EmuCoreRGetDiscGameCode(const char* path);
-extern const char* EmuCoreRGetDiscGameCodeFromFd(int fd);
 
 // Implemented by achievements_bridge.cpp: rcheevos client hooks.
 extern void EmuCoreRAchievementsInitializeJava(JNIEnv* env);
@@ -1625,7 +1731,7 @@ extern void EmuCoreRAchievementsOnSessionEnd();
 // JNI: lifecycle.
 // ---------------------------------------------------------------------------
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
-    LOGI("SwanStation libretro frontend loaded (api=%u)", RETRO_API_VERSION);
+    LOGI("GooseDroid boot probe loaded (api=%u)", retro_api_version());
     EmuCoreRAchievementsSetJavaVm(vm);
     JNIEnv* env = nullptr;
     if (vm != nullptr && vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK) {
@@ -1660,13 +1766,19 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_createSession(JNIEnv*, jobject) {
     {
         std::lock_guard<std::mutex> lock(g_frontend.core_mutex);
         if (!g_frontend.core_initialized) {
+            {
+                std::lock_guard<std::mutex> notices_lock(goose_notice_mutex);
+                goose_notices.clear();
+            }
             retro_set_environment(EnvironmentCallback);
             retro_set_video_refresh(RetroVideoRefresh);
             retro_set_audio_sample(RetroAudioSample);
             retro_set_audio_sample_batch(RetroAudioSampleBatch);
             retro_set_input_poll(RetroInputPoll);
             retro_set_input_state(RetroInputState);
+            GooseDiagnosticSnapshot("before-init");
             retro_init();
+            GooseDiagnosticSnapshot("after-init");
             g_frontend.core_initialized = true;
         }
     }
@@ -1771,13 +1883,13 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_loadBios(JNIEnv* env, jobject, jlon
     if (chars != nullptr) env->ReleaseStringUTFChars(path, chars);
     if (bios_path.empty()) return -2;
     std::lock_guard<std::mutex> lock(g_frontend.mutex);
-    // Expose the exact file to the core's BIOS auto-detection by pointing all
-    // three region options at the same basename within the system directory.
+    // Fallback for callers without regional settings. Preserve explicit choices
+    // and Auto-Detect supplied by the GooseStation catalogue.
     const size_t slash = bios_path.find_last_of("/\\");
     const std::string name = slash == std::string::npos ? bios_path : bios_path.substr(slash + 1);
-    g_frontend.options[option_key::kBiosNtscU] = name;
-    g_frontend.options[option_key::kBiosNtscJ] = name;
-    g_frontend.options[option_key::kBiosPal] = name;
+    g_frontend.options.emplace(option_key::kBiosNtscU, name);
+    g_frontend.options.emplace(option_key::kBiosNtscJ, name);
+    g_frontend.options.emplace(option_key::kBiosPal, name);
     LOGI("BIOS configured: %s", bios_path.c_str());
     return 0;
 }
@@ -1799,10 +1911,12 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_loadBiosOnly(JNIEnv*, jobject, jlon
     info.data = nullptr;
     info.size = 0;
     info.meta = nullptr;
+    GooseDiagnosticSnapshot("before-load");
     if (!retro_load_game(&info)) {
         LOGE("retro_load_game (BIOS only) failed");
         return -3;
     }
+    GooseDiagnosticSnapshot("after-load");
     g_frontend.game_loaded = true;
     LOGI("BIOS-only boot ok");
     return 0;
@@ -1830,10 +1944,12 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_loadDisc(JNIEnv* env, jobject, jlon
     info.data = nullptr;
     info.size = 0;
     info.meta = nullptr;
+    GooseDiagnosticSnapshot("before-load");
     if (!retro_load_game(&info)) {
         LOGE("retro_load_game failed for %s", game_path.c_str());
         return -3;
     }
+    GooseDiagnosticSnapshot("after-load");
     g_frontend.game_loaded = true;
     LOGI("retro_load_game ok: %s", game_path.c_str());
     return 0;
@@ -1855,10 +1971,12 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_loadDiscFd(JNIEnv*, jobject, jlong 
     }
     retro_game_info info{};
     info.path = game_path.c_str();
+    GooseDiagnosticSnapshot("before-load");
     if (!retro_load_game(&info)) {
         LOGE("retro_load_game failed for fd %d (%s)", fd, game_path.c_str());
         return -3;
     }
+    GooseDiagnosticSnapshot("after-load");
     g_frontend.game_loaded = true;
     return 0;
 }
@@ -1877,7 +1995,11 @@ JNIEXPORT void JNICALL
 Java_com_sbro_emucorer_core_NativeCoreBridge_runFrame(JNIEnv*, jobject, jlong handle) {
     if (handle == 0) return;
     EnsureHardwareContext();
+    static std::atomic<unsigned> diagnostic_frames{0};
+    const unsigned diagnostic_frame = diagnostic_frames.fetch_add(1);
+    if (diagnostic_frame < 3) GooseDiagnosticSnapshot("before-run");
     retro_run();
+    if (diagnostic_frame < 3) GooseDiagnosticSnapshot("after-run");
     EmuCoreRAchievementsOnFrame();
 }
 
@@ -2057,8 +2179,7 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_setMemoryCardPath(JNIEnv* env, jobj
             env->ReleaseStringUTFChars(path, chars);
         }
     }
-    EmuCoreRSetMemoryCardPathOverride(static_cast<unsigned>(slot),
-                                      value.empty() ? nullptr : value.c_str());
+    LOGW("GooseDroid probe: custom memory-card paths unsupported; core manages its cards");
 }
 
 JNIEXPORT void JNICALL
@@ -2073,13 +2194,13 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_setTextureReplacementsPathOverride(
             env->ReleaseStringUTFChars(path, chars);
         }
     }
-    EmuCoreRSetTextureReplacementsPathOverride(value.empty() ? nullptr : value.c_str());
+    LOGW("GooseDroid probe: texture replacement path override unsupported");
 }
 
 JNIEXPORT jboolean JNICALL
 Java_com_sbro_emucorer_core_NativeCoreBridge_hasDiscMedia(JNIEnv*, jobject, jlong handle) {
     if (handle == 0 || !g_frontend.game_loaded) return JNI_FALSE;
-    return EmuCoreRHasDiscMedia() ? JNI_TRUE : JNI_FALSE;
+    return g_frontend.game_loaded ? JNI_TRUE : JNI_FALSE;
 }
 
 // Disc metadata for the library layer: "title\nserial\nserial" (the app uses
@@ -2089,7 +2210,7 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_getDiscMetadata(JNIEnv* env, jobjec
     if (path == nullptr) return nullptr;
     const char* chars = env->GetStringUTFChars(path, nullptr);
     if (chars == nullptr) return nullptr;
-    const char* code = EmuCoreRGetDiscGameCode(chars);
+    const char* code = nullptr; // Metadata extraction is not exposed by this core.
     const std::string serial = code != nullptr ? code : "";
     env->ReleaseStringUTFChars(path, chars);
     if (serial.empty()) return nullptr;
@@ -2100,7 +2221,7 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_getDiscMetadata(JNIEnv* env, jobjec
 JNIEXPORT jstring JNICALL
 Java_com_sbro_emucorer_core_NativeCoreBridge_getDiscMetadataFd(JNIEnv* env, jobject, jint fd,
                                                                jlong /*offset*/, jlong /*size*/) {
-    const char* code = EmuCoreRGetDiscGameCodeFromFd(static_cast<int>(fd));
+    const char* code = nullptr; // UI falls back to filename metadata.
     if (code == nullptr) return nullptr;
     const std::string serial = code;
     if (serial.empty()) return nullptr;
@@ -2501,3 +2622,13 @@ Java_com_sbro_emucorer_core_NativeCoreBridge_audioOutputStats(JNIEnv* env, jobje
 }
 
 }  // extern "C"
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_sbro_emucorer_core_NativeCoreBridge_setFastForwardMultiplier(JNIEnv*, jobject, jint multiplier) {
+    const int next = std::clamp(static_cast<int>(multiplier), 1, 8);
+    if (g_fast_forward_multiplier.exchange(next) != next) {
+        std::lock_guard<std::mutex> lock(g_frontend.audio_mutex);
+        g_frontend.audio_read_frame = 0;
+        g_frontend.audio_write_frame = 0;
+    }
+}

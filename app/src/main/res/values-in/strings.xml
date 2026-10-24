@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">Buka file CUE jika ada agar trek data dan audio tetap dalam urutan yang benar. BIN mandiri didukung untuk dump trek tunggal.</string>
     <string name="formats_ps1_planned_title">Playlist multi-disk</string>
     <string name="formats_ps1_planned_body">Core bawaan membaca playlist M3U. Pustaka hanya mengindeks image disk, jadi buka M3U langsung dari pemilih disk.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <!-- Navigation -->
     <string name="shell_library">Pustaka</string>
@@ -636,7 +636,7 @@
     <string name="settings_fps_overlay_mode_detailed">Statistik</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_page_1_title">Selamat datang di EmuCoreR</string>
+    <string name="onboarding_page_1_title">Selamat datang di DukeStation</string>
     <string name="onboarding_page_1_subtitle">Pustaka dan peluncur PlayStation Anda, dirancang untuk penyiapan cepat, navigasi yang jelas, dan pengalaman mulus di layar apa pun.</string>
     <string name="onboarding_page_2_title">Emulasi Kuat</string>
     <string name="onboarding_page_2_subtitle">Rasakan pengalaman game PS1 favorit Anda dengan opsi grafis canggih, kontrol yang dapat disesuaikan, dan pengoptimalan performa.</string>
@@ -2003,7 +2003,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Masukkan URL HTTP atau HTTPS yang valid</string>
     <string name="settings_patches_attribution_title">Penulis patch</string>
-    <string name="settings_patches_attribution">Patch dibuat oleh komunitas dan tetap menjadi milik penulisnya. EmuCoreR hanya mengunduhnya dari sumber publik, tidak menyertakannya, dan tidak mengklaimnya.</string>
+    <string name="settings_patches_attribution">Patch dibuat oleh komunitas dan tetap menjadi milik penulisnya. DukeStation hanya mengunduhnya dari sumber publik, tidak menyertakannya, dan tidak mengklaimnya.</string>
     <string name="settings_patches_source_link">Buka halaman sumber patch</string>
     <string name="achievements_title">Pencapaian</string>
     <string name="achievements_game_loaded">Pencapaian aktif: %1$s</string>

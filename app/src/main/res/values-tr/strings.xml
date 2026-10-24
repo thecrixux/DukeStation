@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">Veri ve ses parçalarının doğru sırayı koruması için CUE dosyası varsa onu açın. Tek parçalı dökümler için bağımsız BIN desteklenir.</string>
     <string name="formats_ps1_planned_title">Cok diskli oynatma listeleri</string>
     <string name="formats_ps1_planned_body">Gomulu cekirdek M3U listelerini okur. Kitaplik yalnizca disk goruntulerini dizinler, bu yuzden bir M3U\'yu dogrudan disk seciciden acin.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">Kütüphane</string>
     <string name="shell_catalog_search">PS1 Arama</string>
@@ -443,7 +443,7 @@
     <string name="settings_fps_overlay_mode_simple">Basit FPS</string>
     <string name="settings_fps_overlay_mode_detailed">İstatistikler</string>
 
-    <string name="onboarding_page_1_title">EmuCoreR\'e Hoş Geldiniz</string>
+    <string name="onboarding_page_1_title">DukeStation\'e Hoş Geldiniz</string>
     <string name="onboarding_page_1_subtitle">Hızlı kurulum, anlaşılır gezinme ve her ekranda akıcı bir deneyim için tasarlanmış PlayStation kütüphaneniz ve başlatıcınız.</string>
     <string name="onboarding_page_2_title">Güçlü Emülasyon</string>
     <string name="onboarding_page_2_subtitle">Gelişmiş grafik seçenekleri, özelleştirilebilir kontroller ve performans optimizasyonlarıyla favori PS1 oyunlarınızı deneyimleyin.</string>
@@ -1989,7 +1989,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Geçerli bir HTTP veya HTTPS URL\'si girin</string>
     <string name="settings_patches_attribution_title">Yama yazarları</string>
-    <string name="settings_patches_attribution">Yamalar topluluk tarafından oluşturulur ve yazarlarının mülkiyetinde kalır. EmuCoreR bunları yalnızca genel kaynaktan indirir; pakete dahil etmez ve sahiplenmez.</string>
+    <string name="settings_patches_attribution">Yamalar topluluk tarafından oluşturulur ve yazarlarının mülkiyetinde kalır. DukeStation bunları yalnızca genel kaynaktan indirir; pakete dahil etmez ve sahiplenmez.</string>
     <string name="settings_patches_source_link">Yama kaynağı sayfasını aç</string>
     <string name="achievements_title">Başarımlar</string>
     <string name="achievements_game_loaded">Başarımlar etkin: %1$s</string>

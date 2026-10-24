@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">CUE फ़ाइल मौजूद हो तो उसे खोलें ताकि डेटा और ऑडियो ट्रैक सही क्रम बनाए रखें। सिंगल-ट्रैक डंप के लिए अलग BIN समर्थित है।</string>
     <string name="formats_ps1_planned_title">मल्टी-डिस्क प्लेलिस्ट</string>
     <string name="formats_ps1_planned_body">बंडल किया गया कोर M3U प्लेलिस्ट पढ़ता है। लाइब्रेरी केवल डिस्क इमेज इंडेक्स करती है, इसलिए M3U को सीधे डिस्क पिकर से खोलें।</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <string name="shell_library">लाइब्रेरी</string>
     <string name="shell_catalog_search">PS1 सर्च</string>
@@ -403,7 +403,7 @@
     <string name="settings_fps_overlay_mode_simple">साधारण FPS</string>
     <string name="settings_fps_overlay_mode_detailed">आंकड़े (Statistics)</string>
 
-    <string name="onboarding_page_1_title">EmuCoreR में आपका स्वागत है</string>
+    <string name="onboarding_page_1_title">DukeStation में आपका स्वागत है</string>
     <string name="onboarding_page_1_subtitle">आपकी PlayStation लाइब्रेरी और लॉन्चर, तेज़ सेटअप, स्पष्ट नेविगेशन और हर स्क्रीन पर सहज अनुभव के लिए डिज़ाइन किए गए हैं।</string>
     <string name="onboarding_page_2_title">शक्तिशाली एमुलेशन</string>
     <string name="onboarding_page_2_subtitle">उन्नत ग्राफिक्स विकल्पों, अनुकूलन योग्य कंट्रोल्स और प्रदर्शन अनुकूलन (optimizations) के साथ अपने पसंदीदा PS1 गेम्स का अनुभव करें।</string>
@@ -1989,7 +1989,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">मान्य HTTP या HTTPS URL दर्ज करें</string>
     <string name="settings_patches_attribution_title">पैच लेखक</string>
-    <string name="settings_patches_attribution">पैच समुदाय द्वारा बनाए जाते हैं और उनके लेखकों की संपत्ति रहते हैं। EmuCoreR उन्हें केवल सार्वजनिक स्रोत से डाउनलोड करता है, बंडल नहीं करता और उन पर दावा नहीं करता।</string>
+    <string name="settings_patches_attribution">पैच समुदाय द्वारा बनाए जाते हैं और उनके लेखकों की संपत्ति रहते हैं। DukeStation उन्हें केवल सार्वजनिक स्रोत से डाउनलोड करता है, बंडल नहीं करता और उन पर दावा नहीं करता।</string>
     <string name="settings_patches_source_link">पैच स्रोत पृष्ठ खोलें</string>
     <string name="achievements_title">उपलब्धियाँ</string>
     <string name="achievements_game_loaded">उपलब्धियाँ सक्रिय: %1$s</string>

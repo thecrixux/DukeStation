@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.EmuCoreR.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenBackground">#101012</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/duke_splash_empty</item>
         <item name="postSplashScreenTheme">@style/Theme.EmuCoreR</item>
     </style>
 

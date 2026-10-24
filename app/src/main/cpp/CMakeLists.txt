@@ -33,7 +33,12 @@ endif()
 # -----------------------------------------------------------------------------
 set(SWANSTATION_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/swanstation")
 set(SWANSTATION_BIN_DIR "${CMAKE_BINARY_DIR}/swanstation")
-add_subdirectory("${SWANSTATION_DIR}" "${SWANSTATION_BIN_DIR}")
+set(GOOSE_CORE "${CMAKE_CURRENT_SOURCE_DIR}/../goosestation/arm64-v8a/libgoosestation_libretro.so")
+if(NOT EXISTS "${GOOSE_CORE}")
+    message(FATAL_ERROR "Missing GooseStation core: ${GOOSE_CORE}")
+endif()
+add_library(goosestation_libretro SHARED IMPORTED)
+set_target_properties(goosestation_libretro PROPERTIES IMPORTED_LOCATION "${GOOSE_CORE}")
 
 # RetroAchievements client (rcheevos), driven by the Android frontend.
 set(RCHEEVOS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/rcheevos")
@@ -75,12 +80,11 @@ target_include_directories(emucorer_jni PRIVATE
 find_library(VULKAN_LIBRARY vulkan)
 
 set(EMUCORER_HAVE_LIBRASHADER OFF)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/librashader/CMakeLists.txt")
-    add_subdirectory("third_party/librashader" "${CMAKE_BINARY_DIR}/librashader")
-endif()
+# Custom shader integration is disabled for the GooseStation boot probe.
+
 
 target_link_libraries(emucorer_jni PRIVATE
-    swanstation_libretro
+    goosestation_libretro
     rcheevos
     android
     log
@@ -106,3 +110,10 @@ set_target_properties(emucorer_jni PROPERTIES
 )
 
 set_target_properties(emucorer_jni PROPERTIES OUTPUT_NAME "emucorer_jni")
+
+# DukePocket uses only PokketStation's MIT core, pinned to 53ab779.
+file(GLOB POCKET_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/pokketstation/src/*.c")
+add_library(dukepocket SHARED pocket_bridge.cpp ${POCKET_SOURCES})
+target_include_directories(dukepocket PRIVATE pokketstation/include pokketstation/src)
+set_target_properties(dukepocket PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON)
+target_compile_options(dukepocket PRIVATE -O2)

@@ -128,6 +128,22 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun setCustomEmulatorDataPath(path: String) {
+        val application = getApplication<Application>()
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!EmulatorStorage.prepareCustomDataRoot(path)) {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(application,
+                        com.sbro.emucorer.R.string.emulator_data_location_error,
+                        android.widget.Toast.LENGTH_LONG).show()
+                }
+                return@launch
+            }
+            preferences.setEmulatorDataPath(path)
+            NativeApp.reloadDataRoot(path)
+        }
+    }
+
     fun setEmulatorDataLocation(location: EmulatorDataLocation) {
         val application = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) {

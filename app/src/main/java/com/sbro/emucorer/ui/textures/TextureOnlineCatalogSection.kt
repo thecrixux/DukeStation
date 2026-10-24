@@ -116,10 +116,11 @@ internal fun TextureOnlineCatalogSection(
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    LaunchedEffect(Unit) {
+    var catalogRevision by remember { mutableStateOf(0) }
+    LaunchedEffect(catalogRevision) {
         val loaded = withContext(Dispatchers.IO) {
             val libraryGames = libraryRepository.loadGames()
-            val catalog = catalogRepository.loadTextureCatalog()
+            val catalog = catalogRepository.loadTextureCatalog(forceRefresh = catalogRevision > 0)
             Triple(libraryGames, catalog, installState.installedTextures())
         }
         if (loaded.first.isNotEmpty() || games.isEmpty()) {
@@ -223,6 +224,14 @@ internal fun TextureOnlineCatalogSection(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            com.sbro.emucorer.ui.common.DukeCatalogSourceEditor("textures") {
+                packs = emptyList()
+                loading = true
+                cached = false
+                loadFailed = false
+                catalogRevision++
+            }
+
             Text(
                 text = stringResource(R.string.texture_catalog_title),
                 style = MaterialTheme.typography.titleLarge,
@@ -275,7 +284,8 @@ internal fun TextureOnlineCatalogSection(
                             Text(stringResource(R.string.content_catalog_loading))
                         }
                         TextureOnlinePhase.ERROR -> Text(
-                            text = stringResource(R.string.content_catalog_failed),
+                            text = stringResource(if (com.sbro.emucorer.data.DukeCatalogSource.get(context, "textures").isBlank())
+                            R.string.duke_catalog_no_source else R.string.duke_catalog_load_failed),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium
                         )

@@ -270,10 +270,11 @@ import com.sbro.emucorer.ui.theme.neon.neonChipShape
 import com.sbro.emucorer.ui.theme.neon.neonCornerAccent
 import com.sbro.emucorer.ui.theme.neon.neonShape
 import com.sbro.emucorer.ui.theme.neon.neonShapeCorners
+import com.sbro.emucorer.BuildConfig
 import java.util.Locale
 
 private enum class SettingsTab {
-    General, Graphics, Patches, Controls, Emulation, Audio, Library, Customization, GameMenu, Updates, About
+    General, Graphics, Patches, Controls, Emulation, System, BIOS, Video, Shaders, CDROM, TextureReplacements, Hacks, SkipEngine, PGXP, Audio, Library, Customization, GameMenu, About
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -370,10 +371,6 @@ fun SettingsScreen(
         return
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.checkMediatekCompatibilityNotice()
-    }
-
     val biosPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? -> uri?.let(viewModel::setBiosPath) }
@@ -443,6 +440,10 @@ fun SettingsScreen(
             onSelect = { location ->
                 showEmulatorDataLocationDialog = false
                 viewModel.setEmulatorDataLocation(location)
+            },
+            onCustomPath = { path ->
+                showEmulatorDataLocationDialog = false
+                viewModel.setCustomEmulatorDataPath(path)
             },
             onDismiss = { showEmulatorDataLocationDialog = false }
         )
@@ -631,29 +632,7 @@ fun SettingsScreen(
         )
     }
 
-    if (uiState.showMediatekCompatibilityNotice) {
-        AlertDialog(
-            onDismissRequest = viewModel::dismissMediatekCompatibilityNotice,
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.WarningAmber,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary
-                )
-            },
-            title = {
-                Text(stringResource(R.string.settings_mediatek_notice_title))
-            },
-            text = {
-                Text(stringResource(R.string.settings_mediatek_notice_message))
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::dismissMediatekCompatibilityNotice) {
-                    Text(stringResource(android.R.string.ok))
-                }
-            }
-        )
-    }
+
 
     if (pendingGamepadActionId.value != null) {
         val dialogFocusRequester = remember { FocusRequester() }
@@ -1484,14 +1463,7 @@ private fun SettingsContent(
                     }
 
                     SettingsSection(title = stringResource(R.string.settings_core_audio)) {
-                        ToggleItem(
-                            icon = Icons.Rounded.MusicNote,
-                            title = stringResource(R.string.settings_enable_cdda_audio),
-                            subtitle = stringResource(R.string.settings_enable_cdda_audio_desc),
-                            checked = uiState.enableCddaAudio,
-                            onCheckedChange = viewModel::setEnableCddaAudio,
-                            onResetToDefault = { viewModel.setEnableCddaAudio(defaults.enableCddaAudio) }
-                        )
+
                         var coreAudioOptionsVersion by remember { mutableIntStateOf(0) }
                         CoreOptionSettingsRows(
                             options = remember { SwanStationCoreOptions.audioOptions() },
@@ -1505,6 +1477,7 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.Controls -> {
+                    com.sbro.emucorer.ui.controls.DukeFastForwardSettings()
                     SettingsSection(title = stringResource(R.string.settings_touch_controls)) {
                         ActionItem(
                             icon = Icons.Rounded.Tune,
@@ -2110,174 +2083,8 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.Graphics -> {
-                    SettingsSection(title = stringResource(R.string.settings_graphics_tab)) {
-                        ChoiceSection(
-                            title = stringResource(R.string.settings_renderer),
-                            options = listOf(
-                                12 to stringResource(R.string.settings_renderer_opengl),
-                                14 to stringResource(R.string.settings_renderer_vulkan),
-                                13 to stringResource(R.string.settings_renderer_software)
-                            ),
-                            selectedValue = RendererDefaults.normalizeAndroidRenderer(uiState.renderer),
-                            onSelect = viewModel::setRenderer,
-                            helpText = stringResource(R.string.settings_help_renderer),
-                            onResetToDefault = { viewModel.setRenderer(defaults.renderer) }
-                        )
-                        ChoiceSection(
-                            title = stringResource(R.string.settings_aspect_ratio),
-                            options = listOf(
-                                1 to stringResource(R.string.settings_aspect_ratio_auto),
-                                2 to stringResource(R.string.settings_aspect_ratio_43),
-                                3 to stringResource(R.string.settings_aspect_ratio_169),
-                                4 to stringResource(R.string.settings_aspect_ratio_107),
-                                0 to stringResource(R.string.emulation_aspect_stretch)
-                            ),
-                            selectedValue = uiState.aspectRatio,
-                            onSelect = viewModel::setAspectRatio,
-                            helpText = stringResource(R.string.settings_help_aspect_ratio),
-                            onResetToDefault = { viewModel.setAspectRatio(defaults.aspectRatio) }
-                        )
-                        // Internal resolution is the app-level "Image Quality"
-                        // setting. Exposing the raw core option here (1x, 2x, ...)
-                        // duplicated the setting under a different name than the
-                        // in-game menu / game manager, and persisted a global
-                        // core-option override that shadowed per-game values.
-                        ChoiceSection(
-                            title = stringResource(R.string.settings_upscale),
-                            options = buildUpscaleOptions(
-                                stringResource(R.string.settings_upscale_native),
-                                EmulatorBridge.getMaxUpscaleMultiplier(uiState.renderer)
-                            ),
-                            selectedValue = upscaleMultiplierKey(uiState.upscaleMultiplier),
-                            onSelect = { key ->
-                                viewModel.setUpscaleMultiplier(upscaleKeyToMultiplier(key))
-                            },
-                            onResetToDefault = {
-                                viewModel.setUpscaleMultiplier(defaults.upscaleMultiplier)
-                            }
-                        )
-                        // Edge trims for the emulated picture, applied by the
-                        // presenter before aspect-ratio scaling.
-                        SettingsSection(title = stringResource(R.string.settings_display_crop)) {
-                            SliderItem(
-                                icon = Icons.Rounded.CropFree,
-                                title = stringResource(R.string.settings_display_crop_left),
-                                subtitle = "${uiState.displayCrop.left} px",
-                                value = uiState.displayCrop.left.toFloat(),
-                                range = DisplayCrop.MIN_PIXELS.toFloat()..DisplayCrop.MAX_PIXELS.toFloat(),
-                                steps = DisplayCrop.MAX_PIXELS - DisplayCrop.MIN_PIXELS - 1,
-                                onValueChange = {
-                                    viewModel.setDisplayCrop(uiState.displayCrop.copy(left = it.toInt()))
-                                },
-                                valueLabel = { "${it.toInt()} px" },
-                                helpText = stringResource(R.string.settings_display_crop_desc),
-                                onResetToDefault = { viewModel.setDisplayCrop(defaults.displayCrop) }
-                            )
-                            SliderItem(
-                                icon = Icons.Rounded.CropFree,
-                                title = stringResource(R.string.settings_display_crop_top),
-                                subtitle = "${uiState.displayCrop.top} px",
-                                value = uiState.displayCrop.top.toFloat(),
-                                range = DisplayCrop.MIN_PIXELS.toFloat()..DisplayCrop.MAX_PIXELS.toFloat(),
-                                steps = DisplayCrop.MAX_PIXELS - DisplayCrop.MIN_PIXELS - 1,
-                                onValueChange = {
-                                    viewModel.setDisplayCrop(uiState.displayCrop.copy(top = it.toInt()))
-                                },
-                                valueLabel = { "${it.toInt()} px" },
-                                onResetToDefault = { viewModel.setDisplayCrop(defaults.displayCrop) }
-                            )
-                            SliderItem(
-                                icon = Icons.Rounded.CropFree,
-                                title = stringResource(R.string.settings_display_crop_right),
-                                subtitle = "${uiState.displayCrop.right} px",
-                                value = uiState.displayCrop.right.toFloat(),
-                                range = DisplayCrop.MIN_PIXELS.toFloat()..DisplayCrop.MAX_PIXELS.toFloat(),
-                                steps = DisplayCrop.MAX_PIXELS - DisplayCrop.MIN_PIXELS - 1,
-                                onValueChange = {
-                                    viewModel.setDisplayCrop(uiState.displayCrop.copy(right = it.toInt()))
-                                },
-                                valueLabel = { "${it.toInt()} px" },
-                                onResetToDefault = { viewModel.setDisplayCrop(defaults.displayCrop) }
-                            )
-                            SliderItem(
-                                icon = Icons.Rounded.CropFree,
-                                title = stringResource(R.string.settings_display_crop_bottom),
-                                subtitle = "${uiState.displayCrop.bottom} px",
-                                value = uiState.displayCrop.bottom.toFloat(),
-                                range = DisplayCrop.MIN_PIXELS.toFloat()..DisplayCrop.MAX_PIXELS.toFloat(),
-                                steps = DisplayCrop.MAX_PIXELS - DisplayCrop.MIN_PIXELS - 1,
-                                onValueChange = {
-                                    viewModel.setDisplayCrop(uiState.displayCrop.copy(bottom = it.toInt()))
-                                },
-                                valueLabel = { "${it.toInt()} px" },
-                                onResetToDefault = { viewModel.setDisplayCrop(defaults.displayCrop) }
-                            )
-                        }
-                        var coreGraphicsVersion by remember { mutableIntStateOf(0) }
-                        CoreOptionSettingsRows(
-                            options = remember {
-                                listOfNotNull(
-                                    SwanStationCoreOptions.option("swanstation_Display_CropMode")
-                                )
-                            },
-                            version = coreGraphicsVersion,
-                            onValueChange = { key, value ->
-                                NativeApp.setCoreOption(key, value)
-                                coreGraphicsVersion++
-                            }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.AutoFixHigh,
-                            title = stringResource(R.string.settings_retroarch_shaders),
-                            subtitle = stringResource(R.string.settings_retroarch_shaders_desc),
-                            checked = uiState.shaderChainEnabled,
-                            onCheckedChange = viewModel::setShaderChainEnabled,
-                            helpText = stringResource(R.string.settings_help_retroarch_shaders),
-                            onResetToDefault = { viewModel.setShaderChainEnabled(false) }
-                        )
-                        ShaderPresetSelector(
-                            title = stringResource(R.string.settings_shader_preset),
-                            presets = uiState.shaderPresets,
-                            selectedPath = uiState.shaderChainPreset,
-                            onSelect = viewModel::setShaderChainPreset,
-                            helpText = stringResource(R.string.settings_help_shader_preset)
-                        )
-                        SettingsItem(
-                            icon = if (uiState.isShaderPackInstalled) {
-                                Icons.Rounded.CheckCircle
-                            } else {
-                                Icons.Rounded.SystemUpdateAlt
-                            },
-                            label = stringResource(R.string.settings_shader_pack_download),
-                            value = when {
-                                uiState.isShaderPackBusy &&
-                                    uiState.shaderPackProgress?.stage == ShaderPackInstallStage.DOWNLOADING ->
-                                    stringResource(R.string.texture_download_status_downloading)
-                                uiState.isShaderPackBusy -> stringResource(R.string.settings_shader_pack_working)
-                                uiState.isShaderPackInstalled -> stringResource(R.string.settings_shader_pack_installed)
-                                else -> stringResource(R.string.settings_shader_pack_download_desc)
-                            },
-                            onClick = viewModel::downloadOfficialShaderPack,
-                            enabled = !uiState.isShaderPackBusy && !uiState.isShaderPackInstalled,
-                            progressVisible = uiState.isShaderPackBusy,
-                            progress = uiState.shaderPackProgress?.fraction
-                        )
-                        SettingsItem(
-                            icon = Icons.Rounded.FolderOpen,
-                            label = stringResource(R.string.settings_shader_pack_import),
-                            value = stringResource(R.string.settings_shader_pack_import_desc),
-                            onClick = launchShaderPackPicker
-                        )
-                        CoreOptionSettingsRows(
-                            options = remember { SwanStationCoreOptions.graphicsOptions() },
-                            version = coreGraphicsVersion,
-                            onValueChange = { key, value ->
-                                NativeApp.setCoreOption(key, value)
-                                coreGraphicsVersion++
-                            }
-                        )
-                    }
-
+                    GooseCoreSettings("display", "Display", appValues = emptyMap(),
+                        setAppValue = { _, _ -> })
                 }
 
                 SettingsTab.Patches -> {
@@ -2334,17 +2141,7 @@ private fun SettingsContent(
                             linkLabel = stringResource(R.string.settings_patches_source_link),
                             linkUrl = PatchDatabaseDownloader.OFFICIAL_SOURCE_PAGE_URL
                         )
-                        ToggleItem(
-                            icon = Icons.Rounded.Tune,
-                            title = stringResource(R.string.settings_widescreen_patches),
-                            subtitle = stringResource(R.string.settings_widescreen_patches_desc),
-                            checked = uiState.enableWidescreenPatches,
-                            onCheckedChange = viewModel::setEnableWidescreenPatches,
-                            helpText = stringResource(R.string.settings_help_widescreen_patches),
-                            onResetToDefault = {
-                                viewModel.setEnableWidescreenPatches(defaults.enableWidescreenPatches)
-                            }
-                        )
+
                         ToggleItem(
                             icon = Icons.Rounded.Tune,
                             title = stringResource(R.string.settings_no_interlacing_patches),
@@ -2433,17 +2230,6 @@ private fun SettingsContent(
                             onResetToDefault = { viewModel.setFrameSkip(defaults.frameSkip) }
                         )
                         ChoiceSection(
-                            title = stringResource(R.string.settings_fps_overlay_mode),
-                            options = listOf(
-                                FPS_OVERLAY_MODE_SIMPLE to stringResource(R.string.settings_fps_overlay_mode_simple),
-                                FPS_OVERLAY_MODE_DETAILED to stringResource(R.string.settings_fps_overlay_mode_detailed)
-                            ),
-                            selectedValue = uiState.fpsOverlayMode,
-                            onSelect = viewModel::setFpsOverlayMode,
-                            helpText = stringResource(R.string.settings_help_fps_overlay_mode),
-                            onResetToDefault = { viewModel.setFpsOverlayMode(defaults.fpsOverlayMode) }
-                        )
-                        ChoiceSection(
                             title = stringResource(R.string.settings_fps_overlay_position),
                             options = fpsOverlayCornerOptions(),
                             selectedValue = uiState.fpsOverlayCorner,
@@ -2477,96 +2263,230 @@ private fun SettingsContent(
                         }
                     }
 
-                    SettingsSection(title = stringResource(R.string.settings_core_cpu)) {
+
+                }
+
+
+                SettingsTab.System -> {
+                    GooseCoreSettings("system", "System", appValues = mapOf(
+                        "goosestation_renderer" to when (RendererDefaults.normalizeAndroidRenderer(uiState.renderer)) {
+                            12 -> "OpenGL"
+                            13 -> "Software"
+                            else -> "Vulkan"
+                        },
+                        "goosestation_resolution_scale" to uiState.upscaleMultiplier.toInt().toString(),
+                        "goosestation_bios_fast_boot" to uiState.enableFastBoot.toString(),
+                        "goosestation_widescreen_hack" to uiState.enableWidescreenPatches.toString(),
+                        "goosestation_cdrom_mute_cd_audio" to (!uiState.enableCddaAudio).toString()
+                    ), setAppValue = { key, value ->
+                        when (key) {
+                            "goosestation_renderer" -> viewModel.setRenderer(when (value) {
+                                "OpenGL" -> 12
+                                "Software" -> 13
+                                else -> 14
+                            })
+                            "goosestation_resolution_scale" -> viewModel.setUpscaleMultiplier(value.toFloat())
+                            "goosestation_bios_fast_boot" -> viewModel.setEnableFastBoot(value.toBoolean())
+                            "goosestation_widescreen_hack" -> viewModel.setEnableWidescreenPatches(value.toBoolean())
+                            "goosestation_cdrom_mute_cd_audio" -> viewModel.setEnableCddaAudio(!value.toBoolean())
+                        }
+                    })
+                }
+                SettingsTab.BIOS -> {
+                    GooseCoreSettings("bios", "BIOS", appValues = mapOf(
+                        "goosestation_renderer" to when (RendererDefaults.normalizeAndroidRenderer(uiState.renderer)) {
+                            12 -> "OpenGL"
+                            13 -> "Software"
+                            else -> "Vulkan"
+                        },
+                        "goosestation_resolution_scale" to uiState.upscaleMultiplier.toInt().toString(),
+                        "goosestation_bios_fast_boot" to uiState.enableFastBoot.toString(),
+                        "goosestation_widescreen_hack" to uiState.enableWidescreenPatches.toString(),
+                        "goosestation_cdrom_mute_cd_audio" to (!uiState.enableCddaAudio).toString()
+                    ), setAppValue = { key, value ->
+                        when (key) {
+                            "goosestation_renderer" -> viewModel.setRenderer(when (value) {
+                                "OpenGL" -> 12
+                                "Software" -> 13
+                                else -> 14
+                            })
+                            "goosestation_resolution_scale" -> viewModel.setUpscaleMultiplier(value.toFloat())
+                            "goosestation_bios_fast_boot" -> viewModel.setEnableFastBoot(value.toBoolean())
+                            "goosestation_widescreen_hack" -> viewModel.setEnableWidescreenPatches(value.toBoolean())
+                            "goosestation_cdrom_mute_cd_audio" -> viewModel.setEnableCddaAudio(!value.toBoolean())
+                        }
+                    })
+                }
+                SettingsTab.Video -> {
+                    GooseCoreSettings("video", "Video", appValues = mapOf(
+                        "goosestation_renderer" to when (RendererDefaults.normalizeAndroidRenderer(uiState.renderer)) {
+                            12 -> "OpenGL"
+                            13 -> "Software"
+                            else -> "Vulkan"
+                        },
+                        "goosestation_resolution_scale" to uiState.upscaleMultiplier.toInt().toString(),
+                        "goosestation_bios_fast_boot" to uiState.enableFastBoot.toString(),
+                        "goosestation_widescreen_hack" to uiState.enableWidescreenPatches.toString(),
+                        "goosestation_cdrom_mute_cd_audio" to (!uiState.enableCddaAudio).toString()
+                    ), setAppValue = { key, value ->
+                        when (key) {
+                            "goosestation_renderer" -> viewModel.setRenderer(when (value) {
+                                "OpenGL" -> 12
+                                "Software" -> 13
+                                else -> 14
+                            })
+                            "goosestation_resolution_scale" -> viewModel.setUpscaleMultiplier(value.toFloat())
+                            "goosestation_bios_fast_boot" -> viewModel.setEnableFastBoot(value.toBoolean())
+                            "goosestation_widescreen_hack" -> viewModel.setEnableWidescreenPatches(value.toBoolean())
+                            "goosestation_cdrom_mute_cd_audio" -> viewModel.setEnableCddaAudio(!value.toBoolean())
+                        }
+                    })
+
+                }
+                SettingsTab.Shaders -> {
+                    SettingsSection(title = stringResource(R.string.settings_retroarch_shaders)) {
                         ToggleItem(
-                            icon = Icons.Rounded.Memory,
-                            title = stringResource(R.string.settings_enable_icache_emulation),
-                            subtitle = stringResource(R.string.settings_enable_icache_emulation_desc),
-                            checked = uiState.enableIcacheEmulation,
-                            onCheckedChange = viewModel::setEnableIcacheEmulation,
-                            onResetToDefault = { viewModel.setEnableIcacheEmulation(defaults.enableIcacheEmulation) }
+                            icon = Icons.Rounded.AutoFixHigh,
+                            title = stringResource(R.string.settings_retroarch_shaders),
+                            subtitle = stringResource(R.string.settings_retroarch_shaders_desc),
+                            checked = uiState.shaderChainEnabled,
+                            onCheckedChange = viewModel::setShaderChainEnabled,
+                            helpText = stringResource(R.string.settings_help_retroarch_shaders),
+                            onResetToDefault = { viewModel.setShaderChainEnabled(false) }
                         )
-                        ToggleItem(
-                            icon = Icons.Rounded.FlashOn,
-                            title = stringResource(R.string.settings_fast_boot),
-                            subtitle = stringResource(R.string.settings_fast_boot_desc),
-                            checked = uiState.enableFastBoot,
-                            onCheckedChange = viewModel::setEnableFastBoot,
-                            helpText = stringResource(R.string.settings_help_fast_boot),
-                            onResetToDefault = { viewModel.setEnableFastBoot(defaults.enableFastBoot) }
+                        ShaderPresetSelector(
+                            title = stringResource(R.string.settings_shader_preset),
+                            presets = uiState.shaderPresets,
+                            selectedPath = uiState.shaderChainPreset,
+                            onSelect = viewModel::setShaderChainPreset,
+                            helpText = stringResource(R.string.settings_help_shader_preset)
                         )
-                        var coreEmulationVersion by remember { mutableIntStateOf(0) }
-                        CoreOptionSettingsRows(
-                            options = remember { SwanStationCoreOptions.emulationOptions() },
-                            version = coreEmulationVersion,
-                            onValueChange = { key, value ->
-                                NativeApp.setCoreOption(key, value)
-                                coreEmulationVersion++
-                            }
+                        SettingsItem(
+                            icon = if (uiState.isShaderPackInstalled) {
+                                Icons.Rounded.CheckCircle
+                            } else {
+                                Icons.Rounded.SystemUpdateAlt
+                            },
+                            label = stringResource(R.string.settings_shader_pack_download),
+                            value = when {
+                                uiState.isShaderPackBusy &&
+                                    uiState.shaderPackProgress?.stage == ShaderPackInstallStage.DOWNLOADING ->
+                                    stringResource(R.string.texture_download_status_downloading)
+                                uiState.isShaderPackBusy -> stringResource(R.string.settings_shader_pack_working)
+                                uiState.isShaderPackInstalled -> stringResource(R.string.settings_shader_pack_installed)
+                                else -> stringResource(R.string.settings_shader_pack_download_desc)
+                            },
+                            onClick = viewModel::downloadOfficialShaderPack,
+                            enabled = !uiState.isShaderPackBusy && !uiState.isShaderPackInstalled,
+                            progressVisible = uiState.isShaderPackBusy,
+                            progress = uiState.shaderPackProgress?.fraction
+                        )
+                        SettingsItem(
+                            icon = Icons.Rounded.FolderOpen,
+                            label = stringResource(R.string.settings_shader_pack_import),
+                            value = stringResource(R.string.settings_shader_pack_import_desc),
+                            onClick = launchShaderPackPicker
                         )
                     }
                 }
-
-
-                SettingsTab.Updates -> {
-                    AppUpdateTab(
-                        state = uiState.appUpdate,
-                        onLoadReleaseHistory = { force -> viewModel.loadAppReleaseHistory(showErrors = true, force = force) }
-                    )
+                SettingsTab.CDROM -> {
+                    GooseCoreSettings("cdrom", "CD-ROM", appValues = mapOf(
+                        "goosestation_renderer" to when (RendererDefaults.normalizeAndroidRenderer(uiState.renderer)) {
+                            12 -> "OpenGL"
+                            13 -> "Software"
+                            else -> "Vulkan"
+                        },
+                        "goosestation_resolution_scale" to uiState.upscaleMultiplier.toInt().toString(),
+                        "goosestation_bios_fast_boot" to uiState.enableFastBoot.toString(),
+                        "goosestation_widescreen_hack" to uiState.enableWidescreenPatches.toString(),
+                        "goosestation_cdrom_mute_cd_audio" to (!uiState.enableCddaAudio).toString()
+                    ), setAppValue = { key, value ->
+                        when (key) {
+                            "goosestation_renderer" -> viewModel.setRenderer(when (value) {
+                                "OpenGL" -> 12
+                                "Software" -> 13
+                                else -> 14
+                            })
+                            "goosestation_resolution_scale" -> viewModel.setUpscaleMultiplier(value.toFloat())
+                            "goosestation_bios_fast_boot" -> viewModel.setEnableFastBoot(value.toBoolean())
+                            "goosestation_widescreen_hack" -> viewModel.setEnableWidescreenPatches(value.toBoolean())
+                            "goosestation_cdrom_mute_cd_audio" -> viewModel.setEnableCddaAudio(!value.toBoolean())
+                        }
+                    })
                 }
+                SettingsTab.TextureReplacements -> {
+                    GooseCoreSettings("texture_replacements", "Texture Replacements", appValues = mapOf(
+                        "goosestation_renderer" to when (RendererDefaults.normalizeAndroidRenderer(uiState.renderer)) {
+                            12 -> "OpenGL"
+                            13 -> "Software"
+                            else -> "Vulkan"
+                        },
+                        "goosestation_resolution_scale" to uiState.upscaleMultiplier.toInt().toString(),
+                        "goosestation_bios_fast_boot" to uiState.enableFastBoot.toString(),
+                        "goosestation_widescreen_hack" to uiState.enableWidescreenPatches.toString(),
+                        "goosestation_cdrom_mute_cd_audio" to (!uiState.enableCddaAudio).toString()
+                    ), setAppValue = { key, value ->
+                        when (key) {
+                            "goosestation_renderer" -> viewModel.setRenderer(when (value) {
+                                "OpenGL" -> 12
+                                "Software" -> 13
+                                else -> 14
+                            })
+                            "goosestation_resolution_scale" -> viewModel.setUpscaleMultiplier(value.toFloat())
+                            "goosestation_bios_fast_boot" -> viewModel.setEnableFastBoot(value.toBoolean())
+                            "goosestation_widescreen_hack" -> viewModel.setEnableWidescreenPatches(value.toBoolean())
+                            "goosestation_cdrom_mute_cd_audio" -> viewModel.setEnableCddaAudio(!value.toBoolean())
+                        }
+                    })
+                }
+                SettingsTab.Hacks -> {
+                    GooseCoreSettings("hacks", "Hacks", appValues = mapOf(
+                        "goosestation_renderer" to when (RendererDefaults.normalizeAndroidRenderer(uiState.renderer)) {
+                            12 -> "OpenGL"
+                            13 -> "Software"
+                            else -> "Vulkan"
+                        },
+                        "goosestation_resolution_scale" to uiState.upscaleMultiplier.toInt().toString(),
+                        "goosestation_bios_fast_boot" to uiState.enableFastBoot.toString(),
+                        "goosestation_widescreen_hack" to uiState.enableWidescreenPatches.toString(),
+                        "goosestation_cdrom_mute_cd_audio" to (!uiState.enableCddaAudio).toString()
+                    ), setAppValue = { key, value ->
+                        when (key) {
+                            "goosestation_renderer" -> viewModel.setRenderer(when (value) {
+                                "OpenGL" -> 12
+                                "Software" -> 13
+                                else -> 14
+                            })
+                            "goosestation_resolution_scale" -> viewModel.setUpscaleMultiplier(value.toFloat())
+                            "goosestation_bios_fast_boot" -> viewModel.setEnableFastBoot(value.toBoolean())
+                            "goosestation_widescreen_hack" -> viewModel.setEnableWidescreenPatches(value.toBoolean())
+                            "goosestation_cdrom_mute_cd_audio" -> viewModel.setEnableCddaAudio(!value.toBoolean())
+                        }
+                    })
+                }
+                SettingsTab.PGXP -> {
+                    GoosePgxpSettings()
+                }
+                SettingsTab.SkipEngine -> {
+                    GooseSkipSettings()
+                }
+
 
                 SettingsTab.About -> {
                     SettingsSection(title = stringResource(R.string.settings_about)) {
-                        SettingsItem(
-                            icon = Icons.Rounded.Info,
+                        SettingsItem(icon = Icons.Rounded.Info,
                             label = stringResource(R.string.settings_version),
-                            value = uiState.appVersion,
-                            onClick = { }
-                        )
-                        SettingsItem(
-                            icon = Icons.Rounded.Memory,
+                            value = BuildConfig.VERSION_NAME, onClick = {})
+                        SettingsItem(icon = Icons.Rounded.Memory,
                             label = stringResource(R.string.settings_emulator_core),
-                              value = "${uiState.coreName} ${uiState.coreVersion}",
-                            onClick = { }
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_app),
-                            body = stringResource(R.string.settings_about_app_desc)
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_studio),
-                            body = stringResource(R.string.settings_about_studio_desc)
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_website),
-                            body = stringResource(R.string.settings_about_website_desc),
-                            linkLabel = stringResource(R.string.settings_about_website_link),
-                            linkUrl = stringResource(R.string.settings_about_website_url)
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_app_source),
-                            body = stringResource(R.string.settings_about_app_source_desc),
-                            linkLabel = stringResource(R.string.settings_about_app_source_link),
-                            linkUrl = stringResource(R.string.settings_about_app_source_url)
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_core_source),
-                            body = stringResource(R.string.settings_about_core_source_desc),
-                            linkLabel = stringResource(R.string.settings_about_core_source_link),
-                            linkUrl = stringResource(R.string.settings_about_core_source_url)
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_support_project),
-                            body = stringResource(R.string.settings_about_support_project_desc),
-                            linkLabel = stringResource(R.string.settings_about_support_project_link),
-                            linkUrl = stringResource(R.string.settings_about_support_project_url)
-                        )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_more_apps),
-                            body = stringResource(R.string.settings_about_more_apps_desc),
-                            linkLabel = stringResource(R.string.settings_about_more_apps_link),
-                            linkUrl = stringResource(R.string.settings_about_more_apps_url)
-                        )
+                            value = "goosestation 0.6.9", onClick = {})
+                        SettingsItem(icon = Icons.Rounded.Info,
+                            label = stringResource(R.string.duke_developer),
+                            value = "xxxCrixuxxx + GPT ASTRA", onClick = {})
+                        SettingsItem(icon = Icons.Rounded.Info,
+                            label = "DukeStation Repository",
+                            value = "https://github.com/thecrixux/DukeStation",
+                            onClick = { openUriInChrome(context, "https://github.com/thecrixux/DukeStation") })
                     }
                 }
             }
@@ -4262,8 +4182,10 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         entry(SettingsTab.Library, R.string.settings_clear_cover_cache),
         entry(SettingsTab.Library, R.string.settings_backup_export_title),
         entry(SettingsTab.Library, R.string.settings_backup_restore_title),
-        entry(SettingsTab.Graphics, R.string.settings_renderer),
-        entry(SettingsTab.Graphics, R.string.settings_upscale),
+        entry(SettingsTab.Shaders, R.string.settings_retroarch_shaders),
+        entry(SettingsTab.Shaders, R.string.settings_shader_preset),
+        entry(SettingsTab.Video, R.string.settings_renderer),
+        entry(SettingsTab.Video, R.string.settings_upscale),
         entry(SettingsTab.Graphics, R.string.settings_aspect_ratio),
         entry(SettingsTab.Patches, R.string.settings_patches_download),
         entry(SettingsTab.Patches, R.string.settings_patches_source_official),
@@ -4272,11 +4194,9 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         entry(SettingsTab.Patches, R.string.settings_no_interlacing_patches),
         entry(SettingsTab.Emulation, R.string.settings_show_fps),
         entry(SettingsTab.Emulation, R.string.settings_fast_boot),
-        entry(SettingsTab.Emulation, R.string.settings_fps_overlay_mode),
         entry(SettingsTab.Emulation, R.string.settings_fps_overlay_position),
         entry(SettingsTab.Emulation, R.string.settings_fps_overlay_scale),
         entry(SettingsTab.Emulation, R.string.settings_fps_overlay_metrics),
-        entry(SettingsTab.Updates, R.string.settings_updates_tab)
     )
 }
 
@@ -6143,15 +6063,23 @@ private fun languageLabel(tag: String?): String {
 private fun SettingsTab.label(): String {
     return when (this) {
         SettingsTab.General -> stringResource(R.string.settings_general_tab)
-        SettingsTab.Graphics -> stringResource(R.string.settings_graphics_tab)
+        SettingsTab.Graphics -> "Display"
         SettingsTab.Patches -> stringResource(R.string.settings_patches_tab)
         SettingsTab.Customization -> stringResource(R.string.settings_customization_tab)
         SettingsTab.GameMenu -> stringResource(R.string.settings_game_menu_tab)
         SettingsTab.Audio -> stringResource(R.string.settings_audio_tab)
         SettingsTab.Controls -> stringResource(R.string.settings_controls_tab)
+        SettingsTab.System -> "System"
+        SettingsTab.BIOS -> "BIOS"
+        SettingsTab.Video -> "Video"
+        SettingsTab.Shaders -> "Shaders"
+        SettingsTab.CDROM -> "CD-ROM"
+        SettingsTab.TextureReplacements -> "Texture Replacements"
+        SettingsTab.Hacks -> "Hacks"
+        SettingsTab.PGXP -> "PGXP"
+        SettingsTab.SkipEngine -> "Skip Engine / Trainer"
         SettingsTab.Emulation -> stringResource(R.string.settings_emulation_tab)
         SettingsTab.Library -> stringResource(R.string.settings_library_tab)
-        SettingsTab.Updates -> stringResource(R.string.settings_updates_tab)
         SettingsTab.About -> stringResource(R.string.settings_about)
     }
 }
@@ -6165,9 +6093,17 @@ private fun SettingsTab.icon(): ImageVector {
         SettingsTab.GameMenu -> Icons.Rounded.MoreVert
         SettingsTab.Audio -> Icons.AutoMirrored.Rounded.VolumeUp
         SettingsTab.Controls -> Icons.Rounded.Gamepad
+        SettingsTab.System -> Icons.Rounded.SettingsSuggest
+        SettingsTab.BIOS -> Icons.Rounded.SettingsSuggest
+        SettingsTab.Video -> Icons.Rounded.SettingsSuggest
+        SettingsTab.Shaders -> Icons.Rounded.AutoFixHigh
+        SettingsTab.CDROM -> Icons.Rounded.SettingsSuggest
+        SettingsTab.TextureReplacements -> Icons.Rounded.Texture
+        SettingsTab.Hacks -> Icons.Rounded.SettingsSuggest
+        SettingsTab.PGXP -> Icons.Rounded.AutoFixHigh
+        SettingsTab.SkipEngine -> Icons.Rounded.Speed
         SettingsTab.Emulation -> Icons.Rounded.Speed
         SettingsTab.Library -> Icons.Rounded.FolderOpen
-        SettingsTab.Updates -> Icons.Rounded.SystemUpdateAlt
         SettingsTab.About -> Icons.Rounded.Info
     }
 }
@@ -6178,12 +6114,13 @@ private fun String.toSettingsTab(): SettingsTab {
         "game_menu", "game-menu", "ingame", "in-game", "menu" -> SettingsTab.GameMenu
         "audio", "sound" -> SettingsTab.Audio
         "controls" -> SettingsTab.Controls
-        "graphics", "video", "renderer", "display" -> SettingsTab.Graphics
+        "graphics", "display" -> SettingsTab.Graphics
+        "video", "renderer" -> SettingsTab.Video
+        "shader", "shaders" -> SettingsTab.Shaders
         "patches", "patch", "patch_database", "patch-database" -> SettingsTab.Patches
         "paths", "files", "memorycards", "memory_cards", "memory-cards", "memcards", "covers",
         "cover-art", "cover_art", "data_transfer", "transfer", "backup", "data-transfer", "library" -> SettingsTab.Library
         "performance", "emulation" -> SettingsTab.Emulation
-        "updates", "update", "app_update", "app-update" -> SettingsTab.Updates
         "about" -> SettingsTab.About
         else -> SettingsTab.General
     }

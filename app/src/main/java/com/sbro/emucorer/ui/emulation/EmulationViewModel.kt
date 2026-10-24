@@ -192,7 +192,7 @@ data class EmulationUiState(
     val stickSurfaceMode: Boolean = false,
     val controlLayouts: Map<String, OverlayControlLayout> = AppPreferences.defaultOverlayControlLayouts(),
     val fps: String = "0.0",
-    val fpsOverlayMode: Int = FPS_OVERLAY_MODE_DETAILED,
+    val fpsOverlayMode: Int = FPS_OVERLAY_MODE_SIMPLE,
     val performanceOverlayText: String = "",
     val performanceOverlayHeader: String = "",
     val speedPercent: Float = 100f,
@@ -774,7 +774,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         viewModelScope.launch {
             preferences.fpsOverlayMode.collect { mode ->
-                applyGlobalRuntimePreferenceUpdate { it.copy(fpsOverlayMode = mode) }
+                applyGlobalRuntimePreferenceUpdate { it.copy(fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE) }
             }
         }
         viewModelScope.launch {
@@ -1755,7 +1755,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
                 val runtimeState = _uiState.value.copy(
                     showFps = liveRuntime.showFps,
-                    fpsOverlayMode = liveRuntime.fpsOverlayMode,
+                    fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE,
                     confirmSaveLoadActions = liveRuntime.confirmSaveLoadActions,
                     backButtonExitsGame = liveRuntime.backButtonExitsGame,
                     renderer = liveRuntime.renderer,
@@ -2528,7 +2528,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setFpsOverlayMode(mode: Int) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(fpsOverlayMode = mode)) {
+            persistRuntimeState(_uiState.value.copy(fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE)) {
                 preferences.setFpsOverlayMode(mode)
             }
         }
@@ -4349,7 +4349,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val settings = preferences.settingsSnapshot.first()
         return LiveRuntimeSnapshot(
             showFps = settings.showFps,
-            fpsOverlayMode = settings.fpsOverlayMode,
+            fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE,
             confirmSaveLoadActions = settings.confirmSaveLoadActions,
             backButtonExitsGame = settings.backButtonExitsGame,
             renderer = settings.renderer,
@@ -4609,7 +4609,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         return copy(
             showFps = pick("showFps", showFps) { showFps },
-            fpsOverlayMode = pick("fpsOverlayMode", fpsOverlayMode) { fpsOverlayMode },
+            fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE,
             racingMode = pick("racingMode", racingMode) { racingMode },
             touchscreenRightStick = pick("touchscreenRightStick", touchscreenRightStick) { touchscreenRightStick },
             touchscreenRightStickSensitivity = pick(
@@ -4766,7 +4766,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             localMultiplayerMode = localMultiplayerMode,
             displayCrop = displayCrop,
             showFps = showFps,
-            fpsOverlayMode = fpsOverlayMode,
+            fpsOverlayMode = FPS_OVERLAY_MODE_SIMPLE,
             enableInstantVu1 = enableInstantVu1,
             enableMtvu = enableMtvu,
             enableThreadPinning = enableThreadPinning,

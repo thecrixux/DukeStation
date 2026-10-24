@@ -13,7 +13,7 @@
     <string name="formats_ps1_recommended_body">Otevřete soubor CUE, pokud je k dispozici, aby datové a zvukové stopy zachovaly správné pořadí. Samostatný BIN je podporován pro jednostopové dumpy.</string>
     <string name="formats_ps1_planned_title">Vicediskove playlisty</string>
     <string name="formats_ps1_planned_body">Vlozene jadro cte playlisty M3U. Knihovna indexuje pouze obrazy disku, proto otevrete M3U primo z vyberu disku.</string>
-    <string name="app_name">EmuCoreR</string>
+    <string name="app_name">DukeStation</string>
 
     <!-- Navigation -->
     <string name="shell_library">Knihovna</string>
@@ -658,7 +658,7 @@
     <string name="settings_fps_overlay_mode_detailed">Statistiky</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_page_1_title">Vítejte v EmuCoreR</string>
+    <string name="onboarding_page_1_title">Vítejte v DukeStation</string>
     <string name="onboarding_page_1_subtitle">Vaše knihovna a spouštěč pro PlayStation, navržená pro rychlé nastavení, přehlednou navigaci a plynulý zážitek na jakékoli obrazovce.</string>
     <string name="onboarding_page_2_title">Výkonná Emulace</string>
     <string name="onboarding_page_2_subtitle">Zažijte své oblíbené hry pro PS1 s pokročilými možnostmi grafiky, přizpůsobitelným ovládáním a optimalizací výkonu.</string>
@@ -2010,7 +2010,7 @@
     <string name="settings_patches_custom_url_placeholder">https://example.com/patches.zip</string>
     <string name="settings_patches_custom_url_invalid">Zadejte platnou URL HTTP nebo HTTPS</string>
     <string name="settings_patches_attribution_title">Autoři patchů</string>
-    <string name="settings_patches_attribution">Patche vytváří komunita a zůstávají majetkem jejich autorů. EmuCoreR je pouze stahuje z veřejného zdroje, nebalí je a nečiní si na ně nárok.</string>
+    <string name="settings_patches_attribution">Patche vytváří komunita a zůstávají majetkem jejich autorů. DukeStation je pouze stahuje z veřejného zdroje, nebalí je a nečiní si na ně nárok.</string>
     <string name="settings_patches_source_link">Otevřít stránku zdroje patchů</string>
     <string name="achievements_title">Úspěchy</string>
     <string name="achievements_game_loaded">Úspěchy aktivní: %1$s</string>

@@ -65,3 +65,11 @@
 -keepclassmembers class **$$serializer {
     public static ** INSTANCE;
 }
+
+-keep class com.sbro.emucorer.pocket.PocketNative { *; }
+
+# ML Kit discovers its factories by registrar names in Android manifest metadata.
+# Retain both names AND constructors after release optimization.
+-keep class com.google.mlkit.** implements com.google.firebase.components.ComponentRegistrar { *; }
+-keep class com.google.mlkit.common.internal.MlKitInitProvider { *; }
+-keep class com.google.mlkit.common.internal.MlKitComponentDiscoveryService { *; }

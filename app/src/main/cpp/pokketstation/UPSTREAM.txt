@@ -1,0 +1,6 @@
+PokketStation by Darien Liu (mentalfoundry)
+https://github.com/mentalfoundry/pokketstation
+Commit: 53ab779 (2026-09-28)
+Only MIT core/ sources are included, unmodified.
+Android frontend and JNI bridge are implemented separately for DukeStation.
+No BIOS or game files are included.

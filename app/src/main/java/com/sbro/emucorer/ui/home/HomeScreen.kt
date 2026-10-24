@@ -1042,7 +1042,7 @@ private fun LoadingState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            EmuCoreLoadingAnimation(size = 80.dp)
+            androidx.compose.foundation.layout.Box(modifier = Modifier)
 
         }
     }
